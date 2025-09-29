@@ -55,10 +55,17 @@ interface Room {
   }
 }
 
+interface Profile {
+  id: string
+  full_name: string
+  phone: string | null
+  role: string
+}
+
 export default function StaffDashboard() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [rooms, setRooms] = useState<Room[]>([])
-  const [profile, setProfile] = useState<User | null>(null)
+  const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
@@ -201,13 +208,13 @@ export default function StaffDashboard() {
   const getStatusBadge = (status: string, type: 'room' | 'booking' = 'booking') => {
     const variants = {
       // Room statuses
-      Available: 'success',
+      Available: 'outline',
       Occupied: 'default',
       Cleaning: 'secondary',
       'Out of Service': 'destructive',
       // Booking statuses
       confirmed: 'default',
-      checked_in: 'success',
+      checked_in: 'outline',
       checked_out: 'outline',
       pending: 'secondary'
     } as const

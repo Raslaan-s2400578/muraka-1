@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { User } from '@supabase/supabase-js'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -56,7 +58,7 @@ export default function GuestDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [cancellingBooking, setCancellingBooking] = useState<string | null>(null)
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
 
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -170,7 +172,7 @@ export default function GuestDashboard() {
     const variants = {
       pending: 'secondary',
       confirmed: 'default',
-      checked_in: 'success',
+      checked_in: 'default',
       checked_out: 'outline',
       cancelled: 'destructive'
     } as const
@@ -181,11 +183,14 @@ export default function GuestDashboard() {
       checked_in: <CheckCircle2Icon className="w-3 h-3 mr-1" />,
       checked_out: <CheckCircle2Icon className="w-3 h-3 mr-1" />,
       cancelled: <XCircleIcon className="w-3 h-3 mr-1" />
-    }
+    } as const
+
+    const variant = variants[status as keyof typeof variants] || 'outline'
+    const icon = icons[status as keyof typeof icons]
 
     return (
-      <Badge variant={variants[status as keyof typeof variants] || 'outline'}>
-        {icons[status as keyof typeof icons]}
+      <Badge variant={variant}>
+        {icon}
         {status.replace('_', ' ').toLowerCase()}
       </Badge>
     )
@@ -263,7 +268,7 @@ export default function GuestDashboard() {
               <h3 className="font-semibold mb-2">Book a Stay</h3>
               <p className="text-sm text-gray-600 mb-4">Find and book your next perfect getaway</p>
               <Button size="sm" asChild>
-                <a href="/">Search Rooms</a>
+                <Link href="/">Search Rooms</Link>
               </Button>
             </CardContent>
           </Card>
@@ -315,7 +320,7 @@ export default function GuestDashboard() {
                     <CalendarIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <p className="text-gray-500 mb-4">No upcoming bookings</p>
                     <Button asChild>
-                      <a href="/">Book Your Next Stay</a>
+                      <Link href="/">Book Your Next Stay</Link>
                     </Button>
                   </div>
                 ) : (

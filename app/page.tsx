@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -75,10 +76,10 @@ export default function Home() {
             </div>
             <div className="flex items-center space-x-4">
               <Button variant="ghost" asChild>
-                <a href="/login">Sign In</a>
+                <Link href="/login">Sign In</Link>
               </Button>
               <Button asChild>
-                <a href="/signup">Sign Up</a>
+                <Link href="/signup">Sign Up</Link>
               </Button>
             </div>
           </div>

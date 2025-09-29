@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { User as AuthUser } from '@supabase/supabase-js'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -41,11 +42,18 @@ interface SystemStats {
   total_rooms: number
 }
 
+interface Profile {
+  id: string
+  full_name: string
+  phone: string | null
+  role: string
+}
+
 export default function AdminDashboard() {
   const [users, setUsers] = useState<User[]>([])
   const [hotels, setHotels] = useState<Hotel[]>([])
   const [systemStats, setSystemStats] = useState<SystemStats | null>(null)
-  const [profile, setProfile] = useState<any>(null)
+  const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [newUserDialog, setNewUserDialog] = useState(false)

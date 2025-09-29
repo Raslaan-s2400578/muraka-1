@@ -2,17 +2,18 @@
 
 import { useState, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { User } from '@supabase/supabase-js'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Separator } from '@/components/ui/separator'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { CalendarIcon, UsersIcon, MapPinIcon, CreditCardIcon } from 'lucide-react'
+import { CalendarIcon, UsersIcon, MapPinIcon } from 'lucide-react'
 import { format, differenceInDays } from 'date-fns'
 
 interface RoomType {
@@ -27,7 +28,7 @@ interface RoomType {
     name: string
     location: string
     address: string
-  }
+  }[]
 }
 
 interface Service {
@@ -58,10 +59,9 @@ export default function BookingPage() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
 
   const roomTypeId = searchParams.get('roomTypeId')
-  const location = searchParams.get('location')
   const checkIn = searchParams.get('checkIn')
   const checkOut = searchParams.get('checkOut')
   const guests = parseInt(searchParams.get('guests') || '2')
@@ -116,7 +116,7 @@ export default function BookingPage() {
           price_off_peak,
           price_peak,
           description,
-          hotel:hotels(id, name, location, address)
+          hotel:hotels!inner(id, name, location, address)
         `)
         .eq('id', roomTypeId)
         .single()
@@ -216,7 +216,7 @@ export default function BookingPage() {
         .from('bookings')
         .insert({
           guest_id: user.id,
-          hotel_id: roomType.hotel.id,
+          hotel_id: roomType.hotel[0]?.id,
           check_in: checkIn,
           check_out: checkOut,
           total_price: totals.total,
@@ -322,10 +322,10 @@ export default function BookingPage() {
               ) : (
                 <>
                   <Button variant="ghost" asChild>
-                    <a href="/login">Sign In</a>
+                    <Link href="/login">Sign In</Link>
                   </Button>
                   <Button asChild>
-                    <a href="/signup">Sign Up</a>
+                    <Link href="/signup">Sign Up</Link>
                   </Button>
                 </>
               )}
@@ -343,8 +343,8 @@ export default function BookingPage() {
         {!user && (
           <Alert className="mb-6">
             <AlertDescription>
-              Please <a href="/login" className="text-blue-600 hover:underline">sign in</a> or{' '}
-              <a href="/signup" className="text-blue-600 hover:underline">create an account</a> to complete your booking.
+              Please <Link href="/login" className="text-blue-600 hover:underline">sign in</Link> or{' '}
+              <Link href="/signup" className="text-blue-600 hover:underline">create an account</Link> to complete your booking.
             </AlertDescription>
           </Alert>
         )}
@@ -478,7 +478,7 @@ export default function BookingPage() {
                     {/* Room Details */}
                     <div>
                       <h4 className="font-semibold">{roomType.name}</h4>
-                      <p className="text-sm text-blue-600">{roomType.hotel.name}</p>
+                      <p className="text-sm text-blue-600">{roomType.hotel[0]?.name}</p>
                       <p className="text-sm text-gray-600">{roomType.description}</p>
                     </div>
 
@@ -512,7 +512,7 @@ export default function BookingPage() {
                           <MapPinIcon className="w-4 h-4 mr-2" />
                           Location
                         </div>
-                        <span>{roomType.hotel.location} Atoll</span>
+                        <span>{roomType.hotel[0]?.location} Atoll</span>
                       </div>
                     </div>
 

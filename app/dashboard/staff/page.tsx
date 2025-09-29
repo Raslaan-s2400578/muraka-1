@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { User } from '@supabase/supabase-js'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -57,7 +58,7 @@ interface Room {
 export default function StaffDashboard() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [rooms, setRooms] = useState<Room[]>([])
-  const [profile, setProfile] = useState<any>(null)
+  const [profile, setProfile] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
@@ -318,7 +319,7 @@ export default function StaffDashboard() {
         {/* Main Content Tabs */}
         <Tabs defaultValue="today" className="space-y-6">
           <TabsList>
-            <TabsTrigger value="today">Today's Activity</TabsTrigger>
+            <TabsTrigger value="today">Today&apos;s Activity</TabsTrigger>
             <TabsTrigger value="rooms">Room Management</TabsTrigger>
             <TabsTrigger value="guests">Guest Search</TabsTrigger>
           </TabsList>
@@ -328,7 +329,7 @@ export default function StaffDashboard() {
               {/* Check-ins */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Today's Check-ins</CardTitle>
+                  <CardTitle>Today&apos;s Check-ins</CardTitle>
                   <CardDescription>
                     Guests arriving today ({todayCheckIns.length})
                   </CardDescription>
@@ -369,7 +370,7 @@ export default function StaffDashboard() {
               {/* Check-outs */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Today's Check-outs</CardTitle>
+                  <CardTitle>Today&apos;s Check-outs</CardTitle>
                   <CardDescription>
                     Guests departing today ({todayCheckOuts.length})
                   </CardDescription>

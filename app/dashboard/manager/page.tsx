@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { User } from '@supabase/supabase-js'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -27,6 +28,13 @@ interface OccupancyData {
   out_of_service_rooms: number
 }
 
+interface Profile {
+  id: string
+  full_name: string
+  phone: string | null
+  role: string
+}
+
 interface RoomType {
   id: string
   name: string
@@ -43,7 +51,7 @@ export default function ManagerDashboard() {
   const [revenueData, setRevenueData] = useState<RevenueData | null>(null)
   const [occupancyData, setOccupancyData] = useState<OccupancyData | null>(null)
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([])
-  const [profile, setProfile] = useState<any>(null)
+  const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [selectedPeriod, setSelectedPeriod] = useState('this_month')

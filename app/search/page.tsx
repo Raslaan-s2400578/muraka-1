@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -25,6 +26,15 @@ interface RoomTypeWithHotel {
     address: string
   }
   available_rooms: number
+}
+
+interface BookingRoom {
+  room_id: string
+  booking: {
+    check_in: string
+    check_out: string
+    status: string
+  }
 }
 
 export default function SearchPage() {
@@ -85,7 +95,7 @@ export default function SearchPage() {
 
       // For each room type, check available rooms
       const roomTypesWithAvailability = await Promise.all(
-        (roomTypesData || []).map(async (rt) => {
+        (roomTypesData || []).map(async (rt: any) => {
           // Get rooms that are not occupied and not in conflicting bookings
           const { data: availableRooms, error: roomsError } = await supabase
             .from('rooms')
@@ -95,7 +105,7 @@ export default function SearchPage() {
 
           if (roomsError) {
             console.error('Error fetching rooms:', roomsError)
-            return { ...rt, available_rooms: 0 }
+            return { ...rt, available_rooms: 0 } as RoomTypeWithHotel
           }
 
           // Check for booking conflicts
@@ -110,12 +120,13 @@ export default function SearchPage() {
 
           if (bookingsError) {
             console.error('Error checking bookings:', bookingsError)
-            return { ...rt, available_rooms: availableRooms?.length || 0 }
+            return { ...rt, available_rooms: availableRooms?.length || 0 } as RoomTypeWithHotel
           }
 
           // Filter out rooms with overlapping bookings
           const conflictingRoomIds = new Set()
-          conflictingBookings?.forEach(booking => {
+          conflictingBookings?.forEach((booking: any) => {
+            if (!booking.booking) return
             const bookingCheckIn = new Date(booking.booking.check_in)
             const bookingCheckOut = new Date(booking.booking.check_out)
             const searchCheckIn = new Date(checkIn!)
@@ -136,7 +147,7 @@ export default function SearchPage() {
           return {
             ...rt,
             available_rooms: Math.max(0, availableCount)
-          }
+          } as RoomTypeWithHotel
         })
       )
 
@@ -234,10 +245,10 @@ export default function SearchPage() {
             </div>
             <div className="flex items-center space-x-4">
               <Button variant="ghost" asChild>
-                <a href="/login">Sign In</a>
+                <Link href="/login">Sign In</Link>
               </Button>
               <Button asChild>
-                <a href="/signup">Sign Up</a>
+                <Link href="/signup">Sign Up</Link>
               </Button>
             </div>
           </div>

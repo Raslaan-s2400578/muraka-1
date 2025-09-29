@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+export const dynamic = 'force-dynamic'
+
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -44,7 +46,7 @@ interface BookingForm {
   specialRequests: string
 }
 
-export default function BookingPage() {
+function BookingPageContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const [roomType, setRoomType] = useState<RoomType | null>(null)
@@ -557,5 +559,13 @@ export default function BookingPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function BookingPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <BookingPageContent />
+    </Suspense>
   )
 }

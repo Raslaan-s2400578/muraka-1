@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+export const dynamic = 'force-dynamic'
+
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -52,7 +54,7 @@ interface Profile {
   role: string
 }
 
-export default function GuestDashboard() {
+function GuestDashboardContent() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
@@ -529,5 +531,13 @@ export default function GuestDashboard() {
         </Tabs>
       </div>
     </div>
+  )
+}
+
+export default function GuestDashboard() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <GuestDashboardContent />
+    </Suspense>
   )
 }

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { User } from '@supabase/supabase-js'
+import { Sidebar } from '@/components/Sidebar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -68,6 +69,7 @@ export default function StaffDashboard() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [activeView, setActiveView] = useState('dashboard')
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
 
@@ -240,6 +242,13 @@ export default function StaffDashboard() {
   const todayCheckIns = bookings.filter(b => b.check_in === new Date().toISOString().split('T')[0])
   const todayCheckOuts = bookings.filter(b => b.check_out === new Date().toISOString().split('T')[0])
 
+  const currentDate = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -252,76 +261,194 @@ export default function StaffDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-blue-600">Muraka Hotels</h1>
-              <Badge className="ml-4">Staff Portal</Badge>
+    <div className="min-h-screen bg-[#F5F3EF]">
+      {/* Sidebar */}
+      <Sidebar
+        activeView={activeView}
+        setActiveView={setActiveView}
+        user={{ name: profile?.full_name || '', role: 'Staff' }}
+        onLogout={handleSignOut}
+      />
+
+      {/* Main Content */}
+      <div className="ml-64">
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          {/* Page Header */}
+          <div className="mb-8 flex justify-between items-start">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome back!</h1>
+              <p className="text-gray-600">Here's what's happening with your hotels today</p>
             </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">Welcome, {profile?.full_name}</span>
-              <Button variant="outline" onClick={handleSignOut}>
-                Sign Out
-              </Button>
+            <div className="text-right">
+              <p className="text-sm text-gray-500">{currentDate}</p>
             </div>
           </div>
-        </div>
-      </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Page Header */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Staff Dashboard</h2>
-          <p className="text-gray-600">Manage daily operations and guest services</p>
-        </div>
+          {error && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-        {error && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <Card className="bg-white shadow-sm">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-blue-50 rounded-lg">
+                    <CalendarIcon className="w-6 h-6 text-blue-600" />
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600 mb-1">Check-ins Today</p>
+                <p className="text-2xl font-bold text-gray-900 mb-2">
+                  {todayCheckIns.length}
+                </p>
+                <p className="text-xs text-green-600 font-medium">
+                  {todayCheckIns.length} arrivals scheduled
+                </p>
+              </CardContent>
+            </Card>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardContent className="p-6 text-center">
-              <CalendarIcon className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-              <h3 className="font-semibold mb-2">Check-ins Today</h3>
-              <p className="text-2xl font-bold text-blue-600">{todayCheckIns.length}</p>
-            </CardContent>
-          </Card>
+            <Card className="bg-white shadow-sm">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-green-50 rounded-lg">
+                    <CalendarIcon className="w-6 h-6 text-green-600" />
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600 mb-1">Check-outs Today</p>
+                <p className="text-2xl font-bold text-gray-900 mb-2">
+                  {todayCheckOuts.length}
+                </p>
+                <p className="text-xs text-green-600 font-medium">
+                  {todayCheckOuts.length} departures scheduled
+                </p>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardContent className="p-6 text-center">
-              <CalendarIcon className="w-8 h-8 text-green-600 mx-auto mb-2" />
-              <h3 className="font-semibold mb-2">Check-outs Today</h3>
-              <p className="text-2xl font-bold text-green-600">{todayCheckOuts.length}</p>
-            </CardContent>
-          </Card>
+            <Card className="bg-white shadow-sm">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-purple-50 rounded-lg">
+                    <HomeIcon className="w-6 h-6 text-purple-600" />
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600 mb-1">Available Rooms</p>
+                <p className="text-2xl font-bold text-gray-900 mb-2">
+                  {rooms.filter(r => r.status === 'Available').length}
+                </p>
+                <p className="text-xs text-green-600 font-medium">
+                  Ready for guests
+                </p>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardContent className="p-6 text-center">
-              <HomeIcon className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-              <h3 className="font-semibold mb-2">Available Rooms</h3>
-              <p className="text-2xl font-bold text-purple-600">
-                {rooms.filter(r => r.status === 'Available').length}
-              </p>
-            </CardContent>
-          </Card>
+            <Card className="bg-white shadow-sm">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-orange-50 rounded-lg">
+                    <ClipboardListIcon className="w-6 h-6 text-orange-600" />
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600 mb-1">Cleaning Required</p>
+                <p className="text-2xl font-bold text-gray-900 mb-2">
+                  {rooms.filter(r => r.status === 'Cleaning').length}
+                </p>
+                <p className="text-xs text-orange-600 font-medium">
+                  Needs attention
+                </p>
+              </CardContent>
+            </Card>
+          </div>
 
-          <Card>
-            <CardContent className="p-6 text-center">
-              <ClipboardListIcon className="w-8 h-8 text-orange-600 mx-auto mb-2" />
-              <h3 className="font-semibold mb-2">Cleaning Required</h3>
-              <p className="text-2xl font-bold text-orange-600">
-                {rooms.filter(r => r.status === 'Cleaning').length}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+          {/* Two Column Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            {/* Today's Check-ins */}
+            <Card className="bg-white shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-gray-900">Today&apos;s Check-ins</CardTitle>
+                <CardDescription>Guests arriving today ({todayCheckIns.length})</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {todayCheckIns.length === 0 ? (
+                    <p className="text-sm text-gray-500 text-center py-8">No check-ins today</p>
+                  ) : (
+                    todayCheckIns.slice(0, 5).map((booking) => (
+                      <div key={booking.id} className="flex items-center justify-between py-3 border-b last:border-0">
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900 text-sm">{booking.guest.full_name}</p>
+                          <p className="text-xs text-gray-500">
+                            {booking.booking_rooms[0]?.room.room_type.name} - Room {booking.booking_rooms[0]?.room.room_number}
+                          </p>
+                          <p className="text-xs text-blue-600 mt-1">{booking.hotel.name}</p>
+                        </div>
+                        <div className="text-right">
+                          <Badge
+                            variant={booking.status === 'confirmed' ? 'default' : 'secondary'}
+                            className={booking.status === 'confirmed' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}
+                          >
+                            {booking.status}
+                          </Badge>
+                          {booking.status === 'confirmed' && (
+                            <button
+                              onClick={() => updateBookingStatus(booking.id, 'checked_in')}
+                              className="mt-2 text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                            >
+                              Check In
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Today's Check-outs */}
+            <Card className="bg-white shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-gray-900">Today&apos;s Check-outs</CardTitle>
+                <CardDescription>Guests departing today ({todayCheckOuts.length})</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {todayCheckOuts.length === 0 ? (
+                    <p className="text-sm text-gray-500 text-center py-8">No check-outs today</p>
+                  ) : (
+                    todayCheckOuts.slice(0, 5).map((booking) => (
+                      <div key={booking.id} className="flex items-center justify-between py-3 border-b last:border-0">
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900 text-sm">{booking.guest.full_name}</p>
+                          <p className="text-xs text-gray-500">
+                            {booking.booking_rooms[0]?.room.room_type.name} - Room {booking.booking_rooms[0]?.room.room_number}
+                          </p>
+                          <p className="text-xs text-blue-600 mt-1">{booking.hotel.name}</p>
+                        </div>
+                        <div className="text-right">
+                          <Badge
+                            variant={booking.status === 'checked_in' ? 'default' : 'secondary'}
+                            className={booking.status === 'checked_in' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}
+                          >
+                            {booking.status}
+                          </Badge>
+                          {booking.status === 'checked_in' && (
+                            <button
+                              onClick={() => updateBookingStatus(booking.id, 'checked_out')}
+                              className="mt-2 text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
+                            >
+                              Check Out
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="today" className="space-y-6">
@@ -532,6 +659,7 @@ export default function StaffDashboard() {
             </Card>
           </TabsContent>
         </Tabs>
+        </div>
       </div>
     </div>
   )

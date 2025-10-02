@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { User } from '@supabase/supabase-js'
+import { Sidebar } from '@/components/Sidebar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -47,13 +48,33 @@ interface RoomType {
   }
 }
 
+interface RecentBooking {
+  id: string
+  check_in: string
+  check_out: string
+  status: string
+  guest: {
+    full_name: string
+  }
+  hotel: {
+    name: string
+  }
+  booking_rooms: {
+    room: {
+      room_number: string
+    }
+  }[]
+}
+
 export default function ManagerDashboard() {
   const [revenueData, setRevenueData] = useState<RevenueData | null>(null)
   const [occupancyData, setOccupancyData] = useState<OccupancyData | null>(null)
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([])
+  const [recentBookings, setRecentBookings] = useState<RecentBooking[]>([])
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [activeView, setActiveView] = useState('dashboard')
   const [selectedPeriod, setSelectedPeriod] = useState('this_month')
 
   const router = useRouter()
@@ -115,6 +136,29 @@ export default function ManagerDashboard() {
       }
 
       setRoomTypes(roomTypesData || [])
+
+      // Load recent bookings
+      const { data: bookingsData, error: bookingsError } = await supabase
+        .from('bookings')
+        .select(`
+          id,
+          check_in,
+          check_out,
+          status,
+          guest:profiles!bookings_guest_id_fkey(full_name),
+          hotel:hotels(name),
+          booking_rooms(
+            room:rooms(room_number)
+          )
+        `)
+        .order('created_at', { ascending: false })
+        .limit(5)
+
+      if (bookingsError) {
+        console.error('Bookings error:', bookingsError)
+      } else {
+        setRecentBookings(bookingsData || [])
+      }
 
       // Load occupancy data
       await loadOccupancyData()
@@ -242,114 +286,188 @@ export default function ManagerDashboard() {
     )
   }
 
+  const currentDate = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-blue-600">Muraka Hotels</h1>
-              <Badge className="ml-4">Manager Portal</Badge>
+    <div className="min-h-screen bg-[#F5F3EF]">
+      {/* Sidebar */}
+      <Sidebar
+        activeView={activeView}
+        setActiveView={setActiveView}
+        user={{ name: profile?.full_name || '', role: 'Manager' }}
+        onLogout={handleSignOut}
+      />
+
+      {/* Main Content */}
+      <div className="ml-64">
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          {/* Page Header */}
+          <div className="mb-8 flex justify-between items-start">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome back!</h1>
+              <p className="text-gray-600">Here's what's happening with your hotels today</p>
             </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">Welcome, {profile?.full_name}</span>
-              <Button variant="outline" onClick={handleSignOut}>
-                Sign Out
-              </Button>
+            <div className="text-right">
+              <p className="text-sm text-gray-500">{currentDate}</p>
             </div>
           </div>
-        </div>
-      </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Page Header */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Manager Dashboard</h2>
-          <p className="text-gray-600">Monitor performance and manage hotel operations</p>
-        </div>
+          {error && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-        {error && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {/* Period Selector */}
-        <div className="mb-6">
-          <Label htmlFor="period" className="text-sm font-medium mb-2 block">
-            Analytics Period
-          </Label>
-          <select
-            id="period"
-            value={selectedPeriod}
-            onChange={(e) => setSelectedPeriod(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="this_week">This Week</option>
-            <option value="this_month">This Month</option>
-            <option value="this_year">This Year</option>
-          </select>
-        </div>
-
-        {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Total Revenue</p>
-                  <p className="text-2xl font-bold text-green-600">
-                    ${revenueData?.total_revenue.toLocaleString() || '0'}
-                  </p>
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <Card className="bg-white shadow-sm">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-blue-50 rounded-lg">
+                    <CalendarIcon className="w-6 h-6 text-blue-600" />
+                  </div>
                 </div>
-                <DollarSignIcon className="w-8 h-8 text-green-600" />
-              </div>
-            </CardContent>
-          </Card>
+                <p className="text-sm text-gray-600 mb-1">Total Bookings</p>
+                <p className="text-2xl font-bold text-gray-900 mb-2">
+                  {revenueData?.booking_count || 0}
+                </p>
+                <p className="text-xs text-green-600 font-medium">
+                  +12.5% from last month
+                </p>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Bookings</p>
-                  <p className="text-2xl font-bold text-blue-600">
-                    {revenueData?.booking_count || 0}
-                  </p>
+            <Card className="bg-white shadow-sm">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-green-50 rounded-lg">
+                    <DollarSignIcon className="w-6 h-6 text-green-600" />
+                  </div>
                 </div>
-                <CalendarIcon className="w-8 h-8 text-blue-600" />
-              </div>
-            </CardContent>
-          </Card>
+                <p className="text-sm text-gray-600 mb-1">Revenue</p>
+                <p className="text-2xl font-bold text-gray-900 mb-2">
+                  ${revenueData?.total_revenue.toLocaleString() || '0'}
+                </p>
+                <p className="text-xs text-green-600 font-medium">
+                  +8.2% from last month
+                </p>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Avg Booking Value</p>
-                  <p className="text-2xl font-bold text-purple-600">
-                    ${Math.round(revenueData?.avg_booking_value || 0).toLocaleString()}
-                  </p>
+            <Card className="bg-white shadow-sm">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-purple-50 rounded-lg">
+                    <HotelIcon className="w-6 h-6 text-purple-600" />
+                  </div>
                 </div>
-                <TrendingUpIcon className="w-8 h-8 text-purple-600" />
-              </div>
-            </CardContent>
-          </Card>
+                <p className="text-sm text-gray-600 mb-1">Occupancy Rate</p>
+                <p className="text-2xl font-bold text-gray-900 mb-2">
+                  {getOccupancyPercentage()}%
+                </p>
+                <p className="text-xs text-green-600 font-medium">
+                  +3.1% from last month
+                </p>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Occupancy Rate</p>
-                  <p className="text-2xl font-bold text-orange-600">
-                    {getOccupancyPercentage()}%
-                  </p>
+            <Card className="bg-white shadow-sm">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-orange-50 rounded-lg">
+                    <TrendingUpIcon className="w-6 h-6 text-orange-600" />
+                  </div>
                 </div>
-                <HotelIcon className="w-8 h-8 text-orange-600" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                <p className="text-sm text-gray-600 mb-1">Avg Booking Value</p>
+                <p className="text-2xl font-bold text-gray-900 mb-2">
+                  ${Math.round(revenueData?.avg_booking_value || 0).toLocaleString()}
+                </p>
+                <p className="text-xs text-green-600 font-medium">
+                  +5.4% from last month
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Two Column Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            {/* Recent Bookings */}
+            <Card className="bg-white shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-gray-900">Recent Bookings</CardTitle>
+                <CardDescription>Latest reservation activity</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {recentBookings.length === 0 ? (
+                    <p className="text-sm text-gray-500 text-center py-8">No recent bookings</p>
+                  ) : (
+                    recentBookings.map((booking) => (
+                      <div key={booking.id} className="flex items-center justify-between py-3 border-b last:border-0">
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900 text-sm">{booking.guest.full_name}</p>
+                          <p className="text-xs text-gray-500">
+                            {booking.hotel.name} - Room {booking.booking_rooms[0]?.room.room_number}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {new Date(booking.check_in).toLocaleDateString()} - {new Date(booking.check_out).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <Badge
+                          variant={booking.status === 'confirmed' ? 'default' : 'secondary'}
+                          className={booking.status === 'confirmed' ? 'bg-blue-100 text-blue-700' : 'bg-yellow-100 text-yellow-700'}
+                        >
+                          {booking.status}
+                        </Badge>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Occupancy Report */}
+            <Card className="bg-white shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-gray-900">Occupancy Report</CardTitle>
+                <CardDescription>Current room status across properties</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {occupancyData && (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center py-3 border-b">
+                      <span className="text-sm text-gray-600">Total Rooms</span>
+                      <span className="font-semibold text-gray-900">{occupancyData.total_rooms}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-3 border-b">
+                      <span className="text-sm text-gray-600">Occupied</span>
+                      <div className="flex items-center space-x-2">
+                        <span className="font-semibold text-gray-900">{occupancyData.occupied_rooms}</span>
+                        <Badge variant="default" className="bg-blue-100 text-blue-700">{getOccupancyPercentage()}%</Badge>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center py-3 border-b">
+                      <span className="text-sm text-gray-600">Available</span>
+                      <span className="font-semibold text-green-600">{occupancyData.available_rooms}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-3 border-b">
+                      <span className="text-sm text-gray-600">Cleaning</span>
+                      <span className="font-semibold text-orange-600">{occupancyData.cleaning_rooms}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-3">
+                      <span className="text-sm text-gray-600">Out of Service</span>
+                      <span className="font-semibold text-red-600">{occupancyData.out_of_service_rooms}</span>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="reports" className="space-y-6">
@@ -541,6 +659,7 @@ export default function ManagerDashboard() {
             </Card>
           </TabsContent>
         </Tabs>
+        </div>
       </div>
     </div>
   )

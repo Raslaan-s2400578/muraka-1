@@ -5,6 +5,7 @@ A comprehensive hotel management system built with Next.js 14, TypeScript, Supab
 ## 🏨 Overview
 
 Muraka Hotels operates three stunning locations across the Maldives:
+
 - **Muraka Male** - Urban luxury near the capital
 - **Muraka Laamu** - Pristine nature and marine life
 - **Muraka Faafu** - Tranquil paradise with sunset views
@@ -12,6 +13,7 @@ Muraka Hotels operates three stunning locations across the Maldives:
 ## ✨ Features
 
 ### Guest Features
+
 - **Room Search & Booking** - Search available rooms across locations with date filters
 - **Multiple Room Types** - Standard Double, Deluxe King, Family Suite, and Penthouse
 - **Additional Services** - Airport Transfer, Breakfast, Spa Access, Late Checkout
@@ -19,16 +21,19 @@ Muraka Hotels operates three stunning locations across the Maldives:
 - **Secure Authentication** - Password strength validation and session management
 
 ### Staff Features
+
 - **Daily Operations** - Manage check-ins and check-outs
 - **Room Management** - Update room statuses and availability
 - **Guest Services** - Search and manage guest bookings
 
 ### Manager Features
+
 - **Analytics Dashboard** - Revenue reports and occupancy analytics
 - **Rate Management** - Update room pricing for peak/off-peak seasons
 - **Staff Oversight** - Monitor staff operations
 
 ### Admin Features
+
 - **User Management** - Create accounts and assign roles
 - **System Settings** - Hotel management and system configuration
 - **Full Access** - Complete system administration
@@ -114,16 +119,16 @@ Visit [http://localhost:3000](http://localhost:3000)
 
 ## 🎯 User Roles & Permissions
 
-| Feature | Guest | Staff | Manager | Admin |
-|---------|-------|-------|---------|-------|
-| Book Rooms | ✅ | ✅ | ✅ | ✅ |
-| View Own Bookings | ✅ | ✅ | ✅ | ✅ |
-| Manage Check-ins/outs | ❌ | ✅ | ✅ | ✅ |
-| Update Room Status | ❌ | ✅ | ✅ | ✅ |
-| View Analytics | ❌ | ❌ | ✅ | ✅ |
-| Manage Room Rates | ❌ | ❌ | ✅ | ✅ |
-| User Management | ❌ | ❌ | ❌ | ✅ |
-| System Settings | ❌ | ❌ | ❌ | ✅ |
+| Feature               | Guest | Staff | Manager | Admin |
+| --------------------- | ----- | ----- | ------- | ----- |
+| Book Rooms            | ✅    | ✅    | ✅      | ✅    |
+| View Own Bookings     | ✅    | ✅    | ✅      | ✅    |
+| Manage Check-ins/outs | ❌    | ✅    | ✅      | ✅    |
+| Update Room Status    | ❌    | ✅    | ✅      | ✅    |
+| View Analytics        | ❌    | ❌    | ✅      | ✅    |
+| Manage Room Rates     | ❌    | ❌    | ✅      | ✅    |
+| User Management       | ❌    | ❌    | ❌      | ✅    |
+| System Settings       | ❌    | ❌    | ❌      | ✅    |
 
 ## 🏗 Project Structure
 
@@ -159,16 +164,19 @@ Muraka/
 ## 🔐 Security Implementation
 
 ### Authentication
+
 - **Password Requirements**: 8+ characters with uppercase, lowercase, number, and special character
 - **Failed Login Protection**: Account lockout after 5 failed attempts
 - **Session Timeout**: 15 minutes of inactivity
 
 ### Authorization
+
 - **Route Protection**: Middleware-based role checking
 - **API Security**: Row-level security policies
 - **Data Access**: Users can only access their own data unless privileged
 
 ### Database Security
+
 - **RLS Policies**: Comprehensive row-level security
 - **Input Validation**: Server-side validation for all inputs
 - **SQL Injection Prevention**: Parameterized queries via Supabase
@@ -177,12 +185,12 @@ Muraka/
 
 ### Room Types & Capacity
 
-| Room Type | Capacity | Off-Peak | Peak |
-|-----------|----------|----------|------|
-| Standard Double | 2 guests | $120-150 | $180-220 |
-| Deluxe King | 2 guests | $200-250 | $280-350 |
-| Family Suite | 4 guests | $350-400 | $450-550 |
-| Penthouse | 6 guests | $800-900 | $1200-1400 |
+| Room Type       | Capacity | Off-Peak | Peak       |
+| --------------- | -------- | -------- | ---------- |
+| Standard Double | 2 guests | $120-150 | $180-220   |
+| Deluxe King     | 2 guests | $200-250 | $280-350   |
+| Family Suite    | 4 guests | $350-400 | $450-550   |
+| Penthouse       | 6 guests | $800-900 | $1200-1400 |
 
 ### Additional Services
 
@@ -216,12 +224,19 @@ For testing the application, use these pre-configured test accounts:
 
 **All test users use the same password: `Welcome@123`**
 
-| Role | Email | Full Name | Access Level |
-|------|-------|-----------|--------------|
-| **Admin** | `admin@test.com` | Test Admin | Full system access |
+| Role        | Email              | Full Name    | Access Level                      |
+| ----------- | ------------------ | ------------ | --------------------------------- |
+| **Admin**   | `admin@test.com`   | Test Admin   | Full system access                |
 | **Manager** | `manager@test.com` | Test Manager | Analytics, rates, staff oversight |
-| **Staff** | `staff@test.com` | Test Staff | Check-ins, room management |
-| **Guest** | `guest@test.com` | Test Guest | Booking and profile management |
+| **Staff**   | `staff@test.com`   | Test Staff   | Check-ins, room management        |
+| **Guest**   | `guest@test.com`   | Test Guest   | Booking and profile management    |
+
+**guest**
+
+|john.smith@email.com | `Welcome@123` | John Smith | guest | +960 777 1234
+|sarah.jones@email.com | `Welcome@123` | Sarah Jones | guest | +960 777 5678
+|mike.wilson@email.com | `Welcome@123` | Mike Wilson | guest | +960 777 9012
+|emma.davis@email.com | `Welcome@123` | Emma Davis | guest | +960 777 3456
 
 ### Creating Test Users
 
@@ -258,14 +273,16 @@ UPDATE profiles SET role = 'guest' WHERE id = (SELECT id FROM auth.users WHERE e
 ```typescript
 // Search available rooms
 const { data: rooms } = await supabase
-  .from('room_types')
-  .select(`
+	.from("room_types")
+	.select(
+		`
     *,
     hotel:hotels(*),
     rooms!inner(id, status)
-  `)
-  .eq('hotels.location', 'Male')
-  .eq('rooms.status', 'Available')
+  `
+	)
+	.eq("hotels.location", "Male")
+	.eq("rooms.status", "Available");
 ```
 
 ## 🤝 Contributing
@@ -283,6 +300,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## 🆘 Support
 
 For support and questions:
+
 - Create an issue in the repository
 - Check the documentation
 - Review the code comments
@@ -290,6 +308,7 @@ For support and questions:
 ## 🗺 Roadmap
 
 ### Phase 2 Features
+
 - [ ] Payment integration (Stripe/PayPal)
 - [ ] Email notifications
 - [ ] Mobile app (React Native)
@@ -300,6 +319,7 @@ For support and questions:
 - [ ] Real-time chat support
 
 ### Technical Improvements
+
 - [ ] Comprehensive testing suite
 - [ ] Performance optimization
 - [ ] SEO optimization

@@ -157,13 +157,37 @@ export default function ManagerDashboard() {
       if (bookingsError) {
         console.error('Bookings error:', bookingsError)
       } else {
-        setRecentBookings(bookingsData || [])
+        // Transform booking data to match interface
+        const transformedBookings = (bookingsData || []).map(booking => ({
+          id: booking.id,
+          check_in: booking.check_in,
+          check_out: booking.check_out,
+          status: booking.status,
+          guest: Array.isArray(booking.guest) && booking.guest.length > 0
+            ? { full_name: booking.guest[0].full_name }
+            : { full_name: 'Unknown Guest' },
+          hotel: Array.isArray(booking.hotel) && booking.hotel.length > 0
+            ? { name: booking.hotel[0].name }
+            : { name: 'Unknown Hotel' },
+          booking_rooms: booking.booking_rooms.map(br => ({
+            room: Array.isArray(br.room) && br.room.length > 0
+              ? { room_number: br.room[0].room_number }
+              : { room_number: 'N/A' }
+          }))
+        }))
+        setRecentBookings(transformedBookings)
       }
 
       // Load occupancy data
       await loadOccupancyData()
     } catch (err) {
-      console.error('Loading error:', err)
+      console.error('Loading error:', err);
+if (err instanceof Error) {
+  console.error('Error message:', err.message);
+  console.error('Stack trace:', err.stack);
+} else {
+  console.error('Error details:', JSON.stringify(err, null, 2));
+}
       setError('Failed to load dashboard data')
     } finally {
       setLoading(false)
@@ -298,7 +322,40 @@ export default function ManagerDashboard() {
       {/* Sidebar */}
       <Sidebar
         activeView={activeView}
-        setActiveView={setActiveView}
+        setActiveView={(view) => {
+          console.log('🔵 Manager Navigation clicked:', view)
+
+          // Dashboard = stay on manager page, just update active state
+          if (view === 'dashboard') {
+            console.log('✅ Already on manager dashboard, updating active state')
+            setActiveView(view)
+          }
+          // Other views = navigate to admin pages
+          else if (view === 'bookings') {
+            console.log('➡️ Navigating to /dashboard/admin/bookings')
+            router.push('/dashboard/admin/bookings')
+          }
+          else if (view === 'hotels') {
+            console.log('➡️ Navigating to /dashboard/admin/hotels')
+            router.push('/dashboard/admin/hotels')
+          }
+          else if (view === 'customers') {
+            console.log('➡️ Navigating to /dashboard/admin/customers')
+            router.push('/dashboard/admin/customers')
+          }
+          else if (view === 'payments') {
+            console.log('➡️ Navigating to /dashboard/admin/payments')
+            router.push('/dashboard/admin/payments')
+          }
+          else if (view === 'reports') {
+            console.log('➡️ Navigating to /dashboard/admin/reports')
+            router.push('/dashboard/admin/reports')
+          }
+          else {
+            console.log('⚠️ Unknown view:', view)
+            setActiveView(view)
+          }
+        }}
         user={{ name: profile?.full_name || '', role: 'Manager' }}
         onLogout={handleSignOut}
       />

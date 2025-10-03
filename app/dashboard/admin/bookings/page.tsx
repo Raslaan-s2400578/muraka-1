@@ -112,7 +112,7 @@ export default function BookingsPage() {
         .eq('id', user.id)
         .single()
 
-      if (profile?.role !== 'admin') {
+      if (profile?.role !== 'admin' && profile?.role !== 'staff' && profile?.role !== 'manager') {
         router.push('/dashboard/guest')
         return
       }
@@ -177,6 +177,12 @@ export default function BookingsPage() {
       }
     } catch (err) {
       console.error('Loading error:', err)
+      if (err instanceof Error) {
+        console.error('Error message:', err.message)
+        console.error('Stack trace:', err.stack)
+      } else {
+        console.error('Error details:', JSON.stringify(err, null, 2))
+      }
     } finally {
       setLoading(false)
     }
@@ -204,15 +210,36 @@ export default function BookingsPage() {
         .select('id, name, location')
         .order('name')
 
-      // Load all rooms
+      // Load all rooms with room type and pricing info
       const { data: roomsData } = await supabase
         .from('rooms')
-        .select('id, room_number, room_type, price_per_night, hotel_id')
+        .select(`
+          id,
+          room_number,
+          hotel_id,
+          room_type:room_types(
+            name,
+            price_off_peak
+          )
+        `)
         .order('room_number')
+
+      // Transform the data to match the Room interface
+      const transformedRooms = roomsData?.map(room => ({
+        id: room.id,
+        room_number: room.room_number,
+        room_type: Array.isArray(room.room_type) && room.room_type.length > 0
+          ? room.room_type[0].name
+          : 'Unknown',
+        price_per_night: Array.isArray(room.room_type) && room.room_type.length > 0
+          ? room.room_type[0].price_off_peak
+          : 0,
+        hotel_id: room.hotel_id
+      })) || []
 
       setGuests(guestsData || [])
       setHotels(hotelsData || [])
-      setRooms(roomsData || [])
+      setRooms(transformedRooms)
     } catch (err) {
       console.error('Error loading form data:', err)
     }

@@ -80,7 +80,7 @@ export default function AdminDashboard() {
         .eq('id', user.id)
         .single()
 
-      if (profile?.role !== 'admin') {
+      if (profile?.role !== 'admin' && profile?.role !== 'staff' && profile?.role !== 'manager') {
         router.push('/dashboard/guest')
         return
       }
@@ -158,7 +158,13 @@ export default function AdminDashboard() {
       // Load system statistics
       await loadSystemStats()
     } catch (err) {
-      console.error('Loading error:', err)
+      console.error('Loading error:', err);
+if (err instanceof Error) {
+  console.error('Error message:', err.message);
+  console.error('Stack trace:', err.stack);
+} else {
+  console.error('Error details:', JSON.stringify(err, null, 2));
+}
       setError('Failed to load admin dashboard data')
     } finally {
       setLoading(false)

@@ -1,8 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { createClient } from '@/lib/supabase/client'
+import { User } from '@supabase/supabase-js'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -46,7 +48,47 @@ export default function Home() {
   const [checkOut, setCheckOut] = useState<Date>()
   const [guests, setGuests] = useState('')
   const [roomType, setRoomType] = useState('')
+  const [user, setUser] = useState<User | null>(null)
+  const [userRole, setUserRole] = useState<string | null>(null)
   const router = useRouter()
+  const supabase = createClient()
+
+  useEffect(() => {
+    checkUser()
+  }, [])
+
+  const checkUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    setUser(user)
+
+    if (user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      setUserRole(profile?.role || null)
+    }
+  }
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    setUser(null)
+    setUserRole(null)
+  }
+
+  const handleDashboardClick = () => {
+    if (userRole === 'admin') {
+      router.push('/dashboard/admin')
+    } else if (userRole === 'manager') {
+      router.push('/dashboard/manager')
+    } else if (userRole === 'staff') {
+      router.push('/dashboard/staff')
+    } else {
+      router.push('/dashboard/guest')
+    }
+  }
 
   const handleSearch = () => {
     if (!location || !checkIn || !checkOut) {
@@ -75,12 +117,25 @@ export default function Home() {
               <h1 className="text-2xl font-bold text-blue-600">Muraka Hotels</h1>
             </div>
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" asChild>
-                <Link href="/login">Sign In</Link>
-              </Button>
-              <Button asChild>
-                <Link href="/signup">Sign Up</Link>
-              </Button>
+              {user ? (
+                <>
+                  <Button variant="ghost" onClick={handleDashboardClick}>
+                    My Dashboard
+                  </Button>
+                  <Button variant="outline" onClick={handleSignOut}>
+                    Sign Out
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="ghost" asChild>
+                    <Link href="/login">Sign In</Link>
+                  </Button>
+                  <Button asChild>
+                    <Link href="/signup">Sign Up</Link>
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>

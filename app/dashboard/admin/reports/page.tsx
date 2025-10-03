@@ -44,7 +44,7 @@ export default function ReportsPage() {
         .eq('id', user.id)
         .single()
 
-      if (profile?.role !== 'admin') {
+      if (profile?.role !== 'admin' && profile?.role !== 'staff' && profile?.role !== 'manager') {
         router.push('/dashboard/guest')
         return
       }

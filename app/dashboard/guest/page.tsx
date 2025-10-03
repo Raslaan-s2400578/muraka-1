@@ -110,7 +110,6 @@ function GuestDashboardContent() {
         .from('bookings')
         .select(`
           *,
-          hotel:hotels(name, location, address),
           booking_rooms(
             room:rooms(
               room_number,
@@ -129,9 +128,33 @@ function GuestDashboardContent() {
         throw bookingsError
       }
 
-      setBookings(bookingsData || [])
+      // Fetch hotel data separately and merge
+      if (bookingsData && bookingsData.length > 0) {
+        const hotelIds = [...new Set(bookingsData.map(b => b.hotel_id))]
+        const { data: hotels } = await supabase
+          .from('hotels')
+          .select('id, name, location, address')
+          .in('id', hotelIds)
+
+        const hotelMap = new Map(hotels?.map(h => [h.id, h]) || [])
+
+        const bookingsWithHotels = bookingsData.map(booking => ({
+          ...booking,
+          hotel: hotelMap.get(booking.hotel_id) || { name: 'Unknown Hotel', location: 'Unknown', address: '' }
+        }))
+
+        setBookings(bookingsWithHotels)
+      } else {
+        setBookings([])
+      }
     } catch (err) {
       console.error('Loading error:', err)
+      if (err instanceof Error) {
+        console.error('Error message:', err.message)
+        console.error('Stack trace:', err.stack)
+      } else {
+        console.error('Error details:', JSON.stringify(err, null, 2))
+      }
       setError('Failed to load dashboard data')
     } finally {
       setLoading(false)
@@ -262,36 +285,53 @@ function GuestDashboardContent() {
           </Alert>
         )}
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardContent className="p-6 text-center">
-              <CalendarIcon className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-              <h3 className="font-semibold mb-2">Book a Stay</h3>
-              <p className="text-sm text-gray-600 mb-4">Find and book your next perfect getaway</p>
-              <Button size="sm" asChild>
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <Card className="border-l-4 border-l-blue-500 bg-gradient-to-br from-blue-50 to-white">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Total Bookings</p>
+                  <p className="text-3xl font-bold text-gray-900 mt-1">{bookings.length}</p>
+                </div>
+                <CalendarIcon className="w-10 h-10 text-blue-500 opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-l-4 border-l-green-500 bg-gradient-to-br from-green-50 to-white">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Upcoming Stays</p>
+                  <p className="text-3xl font-bold text-gray-900 mt-1">{upcomingBookings.length}</p>
+                </div>
+                <UsersIcon className="w-10 h-10 text-green-500 opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-l-4 border-l-purple-500 bg-gradient-to-br from-purple-50 to-white">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Total Spent</p>
+                  <p className="text-3xl font-bold text-gray-900 mt-1">
+                    ${bookings.reduce((sum, b) => sum + b.total_price, 0).toLocaleString()}
+                  </p>
+                </div>
+                <CreditCardIcon className="w-10 h-10 text-purple-500 opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-2 border-blue-500 bg-gradient-to-br from-blue-500 to-blue-600 text-white hover:shadow-lg transition-shadow">
+            <CardContent className="p-6 text-center flex flex-col items-center justify-center h-full">
+              <CalendarIcon className="w-10 h-10 mb-3" />
+              <h3 className="font-semibold mb-2">Book New Stay</h3>
+              <Button size="sm" asChild className="bg-white text-blue-600 hover:bg-blue-50 mt-2">
                 <Link href="/">Search Rooms</Link>
               </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6 text-center">
-              <UsersIcon className="w-8 h-8 text-green-600 mx-auto mb-2" />
-              <h3 className="font-semibold mb-2">Upcoming Stays</h3>
-              <p className="text-sm text-gray-600 mb-4">{upcomingBookings.length} booking{upcomingBookings.length !== 1 ? 's' : ''}</p>
-              <Badge variant="outline">{upcomingBookings.length}</Badge>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6 text-center">
-              <CreditCardIcon className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-              <h3 className="font-semibold mb-2">Total Spent</h3>
-              <p className="text-sm text-gray-600 mb-4">Lifetime bookings value</p>
-              <Badge variant="outline">
-                ${bookings.reduce((sum, b) => sum + b.total_price, 0).toLocaleString()}
-              </Badge>
             </CardContent>
           </Card>
         </div>
@@ -318,11 +358,17 @@ function GuestDashboardContent() {
               </CardHeader>
               <CardContent>
                 {upcomingBookings.length === 0 ? (
-                  <div className="text-center py-8">
-                    <CalendarIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500 mb-4">No upcoming bookings</p>
-                    <Button asChild>
-                      <Link href="/">Book Your Next Stay</Link>
+                  <div className="text-center py-16">
+                    <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <CalendarIcon className="w-12 h-12 text-blue-600" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">No Upcoming Bookings</h3>
+                    <p className="text-gray-500 mb-6">Start planning your next amazing getaway</p>
+                    <Button size="lg" asChild className="bg-blue-600 hover:bg-blue-700">
+                      <Link href="/">
+                        <CalendarIcon className="w-4 h-4 mr-2" />
+                        Browse & Book Rooms
+                      </Link>
                     </Button>
                   </div>
                 ) : (
@@ -431,9 +477,12 @@ function GuestDashboardContent() {
               </CardHeader>
               <CardContent>
                 {pastBookings.length === 0 ? (
-                  <div className="text-center py-8">
-                    <ClockIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">No past bookings</p>
+                  <div className="text-center py-16">
+                    <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <ClockIcon className="w-12 h-12 text-gray-400" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">No Past Bookings</h3>
+                    <p className="text-gray-500">Your booking history will appear here</p>
                   </div>
                 ) : (
                   <Table>

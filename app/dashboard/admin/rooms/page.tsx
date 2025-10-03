@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Sidebar } from '@/components/Sidebar'
@@ -41,7 +41,7 @@ interface Profile {
   role: string
 }
 
-export default function RoomsPage() {
+function RoomsPageContent() {
   const [rooms, setRooms] = useState<Room[]>([])
   const [hotels, setHotels] = useState<Hotel[]>([])
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -94,7 +94,7 @@ export default function RoomsPage() {
         .eq('id', user.id)
         .single()
 
-      if (profile?.role !== 'admin') {
+      if (profile?.role !== 'admin' && profile?.role !== 'staff' && profile?.role !== 'manager') {
         router.push('/dashboard/guest')
         return
       }
@@ -124,7 +124,13 @@ export default function RoomsPage() {
         setRooms(roomsData || [])
       }
     } catch (err) {
-      console.error('Loading error:', err)
+      console.error('Loading error:', err);
+if (err instanceof Error) {
+  console.error('Error message:', err.message);
+  console.error('Stack trace:', err.stack);
+} else {
+  console.error('Error details:', JSON.stringify(err, null, 2));
+}
     } finally {
       setLoading(false)
     }
@@ -555,5 +561,20 @@ export default function RoomsPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function RoomsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#F5F3EF] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p>Loading rooms...</p>
+        </div>
+      </div>
+    }>
+      <RoomsPageContent />
+    </Suspense>
   )
 }

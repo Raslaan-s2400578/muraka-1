@@ -141,7 +141,8 @@ function BookingPageContent() {
 
       setServices(servicesData || [])
     } catch (err) {
-      console.error('Loading error:', err)
+      
+      
       setError('Failed to load booking details')
     } finally {
       setLoading(false)
@@ -221,6 +222,7 @@ function BookingPageContent() {
           hotel_id: roomType.hotel[0]?.id,
           check_in: checkIn,
           check_out: checkOut,
+          num_guests: guests,
           total_price: totals.total,
           status: 'pending'
         })

@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { UsersIcon, MapPinIcon, CalendarIcon, FilterIcon } from 'lucide-react'
 import { format, differenceInDays } from 'date-fns'
 
@@ -46,7 +47,8 @@ function SearchPageContent() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [sortBy, setSortBy] = useState('price')
-  const [filterCapacity, setFilterCapacity] = useState('')
+  const [filterCapacity, setFilterCapacity] = useState('0')
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   const location = searchParams.get('location')
   const checkIn = searchParams.get('checkIn')
@@ -55,6 +57,15 @@ function SearchPageContent() {
   const roomType = searchParams.get('roomType')
 
   const supabase = createClient()
+
+  useEffect(() => {
+    checkLoginStatus()
+  }, [])
+
+  const checkLoginStatus = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    setIsLoggedIn(!!user)
+  }
 
   useEffect(() => {
     if (!location || !checkIn || !checkOut) {
@@ -71,6 +82,25 @@ function SearchPageContent() {
       setLoading(true)
       setError('')
 
+      // First get hotels for the location
+      const { data: hotelsData, error: hotelsError } = await supabase
+        .from('hotels')
+        .select('id, name, location, address')
+        .eq('location', location)
+
+      if (hotelsError) {
+        throw hotelsError
+      }
+
+      if (!hotelsData || hotelsData.length === 0) {
+        setRoomTypes([])
+        setLoading(false)
+        return
+      }
+
+      const hotelIds = hotelsData.map(h => h.id)
+
+      // Then get room types for those hotels
       let query = supabase
         .from('room_types')
         .select(`
@@ -80,9 +110,9 @@ function SearchPageContent() {
           price_off_peak,
           price_peak,
           description,
-          hotel:hotels(id, name, location, address)
+          hotel_id
         `)
-        .eq('hotels.location', location)
+        .in('hotel_id', hotelIds)
         .gte('capacity', guests)
 
       if (roomType) {
@@ -94,6 +124,9 @@ function SearchPageContent() {
       if (roomTypesError) {
         throw roomTypesError
       }
+
+      // Create hotel map for easy lookup
+      const hotelMap = new Map(hotelsData.map(h => [h.id, h]))
 
       // For each room type, check available rooms
       const roomTypesWithAvailability = await Promise.all(
@@ -146,8 +179,12 @@ function SearchPageContent() {
 
           const availableCount = (availableRooms?.length || 0) - conflictingRoomIds.size
 
+          // Add hotel information from the map
+          const hotel = hotelMap.get(rt.hotel_id)
+
           return {
             ...rt,
+            hotel: hotel || { id: rt.hotel_id, name: 'Unknown', location: '', address: '' },
             available_rooms: Math.max(0, availableCount)
           } as RoomTypeWithHotel
         })
@@ -168,7 +205,7 @@ function SearchPageContent() {
   const getSortedAndFilteredRooms = () => {
     let filtered = [...roomTypes]
 
-    if (filterCapacity) {
+    if (filterCapacity && filterCapacity !== '0') {
       const capacity = parseInt(filterCapacity)
       filtered = filtered.filter(rt => rt.capacity >= capacity)
     }
@@ -246,18 +283,50 @@ function SearchPageContent() {
               <h1 className="text-2xl font-bold text-blue-600">Muraka Hotels</h1>
             </div>
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" asChild>
-                <Link href="/login">Sign In</Link>
-              </Button>
-              <Button asChild>
-                <Link href="/signup">Sign Up</Link>
-              </Button>
+              {isLoggedIn ? (
+                <>
+                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                    Signed In
+                  </Badge>
+                  <Button variant="ghost" asChild>
+                    <Link href="/dashboard/guest">My Dashboard</Link>
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="ghost" asChild>
+                    <Link href="/login">Sign In</Link>
+                  </Button>
+                  <Button asChild>
+                    <Link href="/signup">Sign Up</Link>
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Login Reminder for Non-logged Users */}
+        {!isLoggedIn && (
+          <Alert className="mb-6 bg-blue-50 border-blue-200">
+            <AlertDescription className="flex items-center justify-between">
+              <span className="text-blue-900">
+                <strong>Sign in required:</strong> You'll need to sign in or create an account to complete your booking.
+              </span>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" asChild>
+                  <Link href="/login">Sign In</Link>
+                </Button>
+                <Button size="sm" asChild>
+                  <Link href="/signup">Sign Up</Link>
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Search Summary */}
         <div className="mb-8">
           <div className="flex items-center space-x-4 text-sm text-gray-600 mb-4">
@@ -317,7 +386,7 @@ function SearchPageContent() {
                       <SelectValue placeholder="Any capacity" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Any capacity</SelectItem>
+                      <SelectItem value="0">Any capacity</SelectItem>
                       <SelectItem value="2">2+ guests</SelectItem>
                       <SelectItem value="4">4+ guests</SelectItem>
                       <SelectItem value="6">6+ guests</SelectItem>
@@ -332,11 +401,69 @@ function SearchPageContent() {
           <div className="lg:w-3/4">
             {sortedRooms.length === 0 ? (
               <Card>
-                <CardContent className="text-center py-12">
-                  <p className="text-gray-500 mb-4">No rooms available for your search criteria.</p>
-                  <Button onClick={() => router.push('/')}>
-                    Try Different Dates
-                  </Button>
+                <CardHeader>
+                  <CardTitle>No Rooms Available</CardTitle>
+                  <CardDescription>
+                    No rooms found for your current search. Try adjusting your criteria below:
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Location</label>
+                      <Select value={location || ''} onValueChange={(val) => {
+                        const params = new URLSearchParams(window.location.search)
+                        params.set('location', val)
+                        router.push(`/search?${params.toString()}`)
+                      }}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select location" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Male">Muraka Male</SelectItem>
+                          <SelectItem value="Laamu">Muraka Laamu</SelectItem>
+                          <SelectItem value="Faafu">Muraka Faafu</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Number of Guests</label>
+                      <Select value={guests.toString()} onValueChange={(val) => {
+                        const params = new URLSearchParams(window.location.search)
+                        params.set('guests', val)
+                        router.push(`/search?${params.toString()}`)
+                      }}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">1 guest</SelectItem>
+                          <SelectItem value="2">2 guests</SelectItem>
+                          <SelectItem value="3">3 guests</SelectItem>
+                          <SelectItem value="4">4 guests</SelectItem>
+                          <SelectItem value="5">5 guests</SelectItem>
+                          <SelectItem value="6">6+ guests</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4 pt-4">
+                    <Button onClick={() => router.push('/')} variant="outline" className="flex-1">
+                      Start New Search
+                    </Button>
+                    <Button onClick={() => window.location.reload()} className="flex-1">
+                      Search Again
+                    </Button>
+                  </div>
+
+                  <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                    <p className="text-sm text-blue-900">
+                      <strong>Tip:</strong> Try selecting a different location or reducing the number of guests.
+                      You can also try different dates by starting a new search.
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
             ) : (

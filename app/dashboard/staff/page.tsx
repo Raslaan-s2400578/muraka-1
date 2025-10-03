@@ -65,6 +65,7 @@ interface Profile {
 
 export default function StaffDashboard() {
   const [bookings, setBookings] = useState<Booking[]>([])
+  const [allBookings, setAllBookings] = useState<Booking[]>([])
   const [rooms, setRooms] = useState<Room[]>([])
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
@@ -72,6 +73,8 @@ export default function StaffDashboard() {
   const [activeView, setActiveView] = useState('dashboard')
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [bookingSearchTerm, setBookingSearchTerm] = useState('')
+  const [bookingStatusFilter, setBookingStatusFilter] = useState('all')
 
   const router = useRouter()
   const supabase = createClient()
@@ -102,6 +105,7 @@ export default function StaffDashboard() {
 
       setProfile(profile)
       await loadStaffData()
+      await loadAllBookings()
     } catch (err) {
       console.error('Auth error:', err)
       router.push('/login')
@@ -119,8 +123,6 @@ export default function StaffDashboard() {
         .from('bookings')
         .select(`
           *,
-          guest:profiles(full_name, phone),
-          hotel:hotels(id, name, location),
           booking_rooms(
             room:rooms(
               id,
@@ -137,7 +139,34 @@ export default function StaffDashboard() {
         throw bookingsError
       }
 
-      setBookings(bookingsData || [])
+      // Fetch guest and hotel data separately
+      if (bookingsData && bookingsData.length > 0) {
+        const guestIds = [...new Set(bookingsData.map(b => b.guest_id))]
+        const hotelIds = [...new Set(bookingsData.map(b => b.hotel_id))]
+
+        const { data: guests } = await supabase
+          .from('profiles')
+          .select('id, full_name, phone')
+          .in('id', guestIds)
+
+        const { data: hotels } = await supabase
+          .from('hotels')
+          .select('id, name, location')
+          .in('id', hotelIds)
+
+        const guestMap = new Map(guests?.map(g => [g.id, g]) || [])
+        const hotelMap = new Map(hotels?.map(h => [h.id, h]) || [])
+
+        const bookingsWithDetails = bookingsData.map(booking => ({
+          ...booking,
+          guest: guestMap.get(booking.guest_id) || { full_name: 'Unknown Guest', phone: null },
+          hotel: hotelMap.get(booking.hotel_id) || { id: booking.hotel_id, name: 'Unknown Hotel', location: 'Unknown' }
+        }))
+
+        setBookings(bookingsWithDetails)
+      } else {
+        setBookings([])
+      }
 
       // Load all rooms for management
       const { data: roomsData, error: roomsError } = await supabase
@@ -156,9 +185,68 @@ export default function StaffDashboard() {
       setRooms(roomsData || [])
     } catch (err) {
       console.error('Loading error:', err)
+      if (err instanceof Error) {
+        console.error('Error message:', err.message)
+        console.error('Stack trace:', err.stack)
+      } else {
+        console.error('Error details:', JSON.stringify(err, null, 2))
+      }
       setError('Failed to load dashboard data')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadAllBookings = async () => {
+    try {
+      const { data: bookingsData, error: bookingsError } = await supabase
+        .from('bookings')
+        .select(`
+          *,
+          booking_rooms(
+            room:rooms(
+              id,
+              room_number,
+              room_type:room_types(name)
+            )
+          )
+        `)
+        .order('created_at', { ascending: false })
+
+      if (bookingsError) {
+        throw bookingsError
+      }
+
+      // Fetch guest and hotel data separately
+      if (bookingsData && bookingsData.length > 0) {
+        const guestIds = [...new Set(bookingsData.map(b => b.guest_id))]
+        const hotelIds = [...new Set(bookingsData.map(b => b.hotel_id))]
+
+        const { data: guests } = await supabase
+          .from('profiles')
+          .select('id, full_name, phone')
+          .in('id', guestIds)
+
+        const { data: hotels } = await supabase
+          .from('hotels')
+          .select('id, name, location')
+          .in('id', hotelIds)
+
+        const guestMap = new Map(guests?.map(g => [g.id, g]) || [])
+        const hotelMap = new Map(hotels?.map(h => [h.id, h]) || [])
+
+        const bookingsWithDetails = bookingsData.map(booking => ({
+          ...booking,
+          guest: guestMap.get(booking.guest_id) || { full_name: 'Unknown Guest', phone: null },
+          hotel: hotelMap.get(booking.hotel_id) || { id: booking.hotel_id, name: 'Unknown Hotel', location: 'Unknown' }
+        }))
+
+        setAllBookings(bookingsWithDetails)
+      } else {
+        setAllBookings([])
+      }
+    } catch (err) {
+      console.error('Loading all bookings error:', err)
     }
   }
 
@@ -201,6 +289,7 @@ export default function StaffDashboard() {
 
       // Refresh bookings data
       await loadStaffData()
+      await loadAllBookings()
     } catch (err) {
       console.error('Update error:', err)
       setError('Failed to update booking status')
@@ -265,7 +354,40 @@ export default function StaffDashboard() {
       {/* Sidebar */}
       <Sidebar
         activeView={activeView}
-        setActiveView={setActiveView}
+        setActiveView={(view) => {
+          console.log('🔵 Staff Navigation clicked:', view)
+
+          // Dashboard = stay on staff page, just update active state
+          if (view === 'dashboard') {
+            console.log('✅ Already on staff dashboard, updating active state')
+            setActiveView(view)
+          }
+          // Other views = navigate to staff pages
+          else if (view === 'bookings') {
+            console.log('➡️ Navigating to /dashboard/staff/bookings')
+            router.push('/dashboard/staff/bookings')
+          }
+          else if (view === 'hotels') {
+            console.log('➡️ Navigating to /dashboard/staff/hotels')
+            router.push('/dashboard/staff/hotels')
+          }
+          else if (view === 'customers') {
+            console.log('➡️ Navigating to /dashboard/staff/customers')
+            router.push('/dashboard/staff/customers')
+          }
+          else if (view === 'payments') {
+            console.log('➡️ Navigating to /dashboard/staff/payments')
+            router.push('/dashboard/staff/payments')
+          }
+          else if (view === 'reports') {
+            console.log('➡️ Navigating to /dashboard/staff/reports')
+            router.push('/dashboard/staff/reports')
+          }
+          else {
+            console.log('⚠️ Unknown view, setting state:', view)
+            setActiveView(view)
+          }
+        }}
         user={{ name: profile?.full_name || '', role: 'Staff' }}
         onLogout={handleSignOut}
       />
@@ -379,7 +501,7 @@ export default function StaffDashboard() {
                         <div className="flex-1">
                           <p className="font-medium text-gray-900 text-sm">{booking.guest.full_name}</p>
                           <p className="text-xs text-gray-500">
-                            {booking.booking_rooms[0]?.room.room_type.name} - Room {booking.booking_rooms[0]?.room.room_number}
+                            {booking.booking_rooms[0]?.room?.room_type?.name || 'Room'} - Room {booking.booking_rooms[0]?.room?.room_number || 'N/A'}
                           </p>
                           <p className="text-xs text-blue-600 mt-1">{booking.hotel.name}</p>
                         </div>
@@ -422,7 +544,7 @@ export default function StaffDashboard() {
                         <div className="flex-1">
                           <p className="font-medium text-gray-900 text-sm">{booking.guest.full_name}</p>
                           <p className="text-xs text-gray-500">
-                            {booking.booking_rooms[0]?.room.room_type.name} - Room {booking.booking_rooms[0]?.room.room_number}
+                            {booking.booking_rooms[0]?.room?.room_type?.name || 'Room'} - Room {booking.booking_rooms[0]?.room?.room_number || 'N/A'}
                           </p>
                           <p className="text-xs text-blue-600 mt-1">{booking.hotel.name}</p>
                         </div>
@@ -454,6 +576,7 @@ export default function StaffDashboard() {
         <Tabs defaultValue="today" className="space-y-6">
           <TabsList>
             <TabsTrigger value="today">Today&apos;s Activity</TabsTrigger>
+            <TabsTrigger value="bookings">All Bookings</TabsTrigger>
             <TabsTrigger value="rooms">Room Management</TabsTrigger>
             <TabsTrigger value="guests">Guest Search</TabsTrigger>
           </TabsList>
@@ -478,7 +601,7 @@ export default function StaffDashboard() {
                           <div>
                             <p className="font-medium">{booking.guest.full_name}</p>
                             <p className="text-sm text-gray-600">
-                              {booking.booking_rooms[0]?.room.room_type.name} - Room {booking.booking_rooms[0]?.room.room_number}
+                              {booking.booking_rooms[0]?.room?.room_type?.name || 'Room'} - Room {booking.booking_rooms[0]?.room?.room_number || 'N/A'}
                             </p>
                             <p className="text-sm text-blue-600">{booking.hotel.name}</p>
                           </div>
@@ -519,7 +642,7 @@ export default function StaffDashboard() {
                           <div>
                             <p className="font-medium">{booking.guest.full_name}</p>
                             <p className="text-sm text-gray-600">
-                              {booking.booking_rooms[0]?.room.room_type.name} - Room {booking.booking_rooms[0]?.room.room_number}
+                              {booking.booking_rooms[0]?.room?.room_type?.name || 'Room'} - Room {booking.booking_rooms[0]?.room?.room_number || 'N/A'}
                             </p>
                             <p className="text-sm text-blue-600">{booking.hotel.name}</p>
                           </div>
@@ -543,6 +666,136 @@ export default function StaffDashboard() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          <TabsContent value="bookings">
+            <Card>
+              <CardHeader>
+                <CardTitle>All Bookings Management</CardTitle>
+                <CardDescription>
+                  View and manage all hotel bookings
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {/* Search and Filter */}
+                <div className="flex gap-4 mb-6">
+                  <div className="flex-1 relative">
+                    <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <Input
+                      placeholder="Search by guest name, booking ID..."
+                      value={bookingSearchTerm}
+                      onChange={(e) => setBookingSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  <Select value={bookingStatusFilter} onValueChange={setBookingStatusFilter}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="All Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="confirmed">Confirmed</SelectItem>
+                      <SelectItem value="checked_in">Checked In</SelectItem>
+                      <SelectItem value="checked_out">Checked Out</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Bookings Table */}
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-b border-gray-200">
+                      <TableHead className="font-semibold text-gray-700">Booking ID</TableHead>
+                      <TableHead className="font-semibold text-gray-700">Guest</TableHead>
+                      <TableHead className="font-semibold text-gray-700">Hotel & Room</TableHead>
+                      <TableHead className="font-semibold text-gray-700">Dates</TableHead>
+                      <TableHead className="font-semibold text-gray-700">Status</TableHead>
+                      <TableHead className="font-semibold text-gray-700">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {allBookings
+                      .filter(booking => {
+                        const matchesSearch = !bookingSearchTerm ||
+                          booking.guest.full_name.toLowerCase().includes(bookingSearchTerm.toLowerCase()) ||
+                          booking.id.toLowerCase().includes(bookingSearchTerm.toLowerCase())
+                        const matchesStatus = bookingStatusFilter === 'all' || booking.status === bookingStatusFilter
+                        return matchesSearch && matchesStatus
+                      })
+                      .map((booking) => (
+                        <TableRow key={booking.id} className="border-b border-gray-100">
+                          <TableCell className="font-mono text-sm text-gray-900">
+                            #{booking.id.slice(0, 8)}
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium text-gray-900">{booking.guest.full_name}</p>
+                              <p className="text-sm text-gray-500">{booking.guest.phone || 'No phone'}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium text-gray-900">{booking.hotel.name}</p>
+                              <p className="text-sm text-gray-500">
+                                {booking.booking_rooms[0] ? `Room ${booking.booking_rooms[0].room.room_number}` : 'No room assigned'}
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-sm text-gray-600">
+                            {format(new Date(booking.check_in), 'MMM dd')} - {format(new Date(booking.check_out), 'MMM dd, yyyy')}
+                          </TableCell>
+                          <TableCell>
+                            {getStatusBadge(booking.status)}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              {booking.status === 'pending' && (
+                                <Button
+                                  size="sm"
+                                  className="bg-green-600 hover:bg-green-700"
+                                  onClick={() => updateBookingStatus(booking.id, 'confirmed')}
+                                >
+                                  Confirm
+                                </Button>
+                              )}
+                              {booking.status === 'confirmed' && (
+                                <Button
+                                  size="sm"
+                                  className="bg-blue-600 hover:bg-blue-700"
+                                  onClick={() => updateBookingStatus(booking.id, 'checked_in')}
+                                >
+                                  Check In
+                                </Button>
+                              )}
+                              {booking.status === 'checked_in' && (
+                                <Button
+                                  size="sm"
+                                  className="bg-purple-600 hover:bg-purple-700"
+                                  onClick={() => updateBookingStatus(booking.id, 'checked_out')}
+                                >
+                                  Check Out
+                                </Button>
+                              )}
+                              {(booking.status === 'pending' || booking.status === 'confirmed') && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-red-600 hover:text-red-700"
+                                  onClick={() => updateBookingStatus(booking.id, 'cancelled')}
+                                >
+                                  Cancel
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="rooms">

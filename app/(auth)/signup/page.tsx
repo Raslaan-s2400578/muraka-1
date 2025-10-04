@@ -67,7 +67,9 @@ export default function SignupPage() {
     }
 
     try {
-      const { error } = await supabase.auth.signUp({
+      console.log('Attempting signup with:', { email, fullName, phone })
+
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -75,16 +77,44 @@ export default function SignupPage() {
             full_name: fullName,
             phone: phone,
           },
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       })
 
+      console.log('Signup response:', { data, error })
+
       if (error) {
-        setError(error.message)
-      } else {
-        setMessage('Check your email for the confirmation link!')
+        console.error('Signup error:', error)
+        setError(`${error.message} (Code: ${error.status || 'unknown'})`)
+      } else if (data.user) {
+        console.log('Signup successful, creating profile...')
+
+        // Manually create profile if trigger didn't work
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: data.user.id,
+            full_name: fullName,
+            email: email,
+            phone: phone || null,
+            role: 'guest',
+          })
+
+        if (profileError) {
+          console.warn('Profile creation warning:', profileError)
+          // Don't show error to user if profile already exists
+          if (!profileError.message.includes('duplicate') && !profileError.message.includes('already exists')) {
+            setError(`Account created but profile setup failed: ${profileError.message}`)
+            return
+          }
+        }
+
+        console.log('Profile created successfully')
+        setMessage('Account created successfully! Check your email for the confirmation link!')
       }
     } catch (err) {
-      setError('An unexpected error occurred')
+      console.error('Unexpected error:', err)
+      setError(`An unexpected error occurred: ${err instanceof Error ? err.message : 'Unknown error'}`)
     } finally {
       setLoading(false)
     }

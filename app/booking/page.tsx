@@ -224,7 +224,9 @@ function BookingPageContent() {
           check_out: checkOut,
           num_guests: guests,
           total_price: totals.total,
-          status: 'pending'
+          status: 'pending',
+          phone: form.phone || null,
+          special_requests: form.specialRequests || null
         })
         .select()
         .single()

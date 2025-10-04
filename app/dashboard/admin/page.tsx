@@ -45,8 +45,19 @@ interface RecentBooking {
   booking_rooms: {
     room: {
       room_number: string
+      room_type: string
     }
   }[]
+}
+
+interface HotelStats {
+  hotel_id: string
+  hotel_name: string
+  location: string
+  occupancy: number
+  revenue: number
+  total_rooms: number
+  occupied_rooms: number
 }
 
 export default function AdminDashboard() {
@@ -54,6 +65,7 @@ export default function AdminDashboard() {
   const [systemStats, setSystemStats] = useState<SystemStats | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [recentBookings, setRecentBookings] = useState<RecentBooking[]>([])
+  const [hotelStats, setHotelStats] = useState<HotelStats[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [activeView] = useState('dashboard')
@@ -109,7 +121,7 @@ export default function AdminDashboard() {
 
       setHotels(hotelsData || [])
 
-      // Load recent bookings
+      // Load recent bookings with room types
       const { data: bookingsData, error: bookingsError } = await supabase
         .from('bookings')
         .select(`
@@ -119,8 +131,12 @@ export default function AdminDashboard() {
           status,
           guest_id,
           hotel_id,
+          total_price,
           booking_rooms(
-            room:rooms(room_number)
+            rooms(
+              room_number,
+              room_types(name)
+            )
           )
         `)
         .order('created_at', { ascending: false })
@@ -149,7 +165,13 @@ export default function AdminDashboard() {
         const transformedBookings = bookingsData.map((booking: any) => ({
           ...booking,
           guest: guestMap.get(booking.guest_id) || { full_name: 'Unknown' },
-          hotel: hotelMap.get(booking.hotel_id) || { name: 'Unknown' }
+          hotel: hotelMap.get(booking.hotel_id) || { name: 'Unknown' },
+          booking_rooms: booking.booking_rooms?.map((br: any) => ({
+            room: {
+              room_number: br.rooms?.room_number || 'Unknown',
+              room_type: br.rooms?.room_types?.name || 'Unknown'
+            }
+          })) || []
         }))
 
         setRecentBookings(transformedBookings)
@@ -157,6 +179,9 @@ export default function AdminDashboard() {
 
       // Load system statistics
       await loadSystemStats()
+
+      // Load hotel performance stats
+      await loadHotelStats()
     } catch (err) {
       console.error('Loading error:', err);
 if (err instanceof Error) {
@@ -198,6 +223,65 @@ if (err instanceof Error) {
       })
     } catch (err) {
       console.error('Stats error:', err)
+    }
+  }
+
+  const loadHotelStats = async () => {
+    try {
+      const { data: hotelsData } = await supabase
+        .from('hotels')
+        .select('id, name, location')
+
+      if (!hotelsData) return
+
+      const stats: HotelStats[] = []
+      const today = new Date().toISOString().split('T')[0]
+
+      for (const hotel of hotelsData) {
+        // Get total rooms for this hotel
+        const { count: totalRooms } = await supabase
+          .from('rooms')
+          .select('*', { count: 'exact', head: true })
+          .eq('hotel_id', hotel.id)
+
+        // Get active bookings for this hotel (currently ongoing - check_in <= today <= check_out)
+        const { data: activeBookings } = await supabase
+          .from('bookings')
+          .select('id, total_price, booking_rooms(room_id)')
+          .eq('hotel_id', hotel.id)
+          .lte('check_in', today)
+          .gte('check_out', today)
+          .neq('status', 'cancelled')
+
+        // Get all confirmed/completed bookings revenue for this hotel
+        const { data: allBookings } = await supabase
+          .from('bookings')
+          .select('total_price')
+          .eq('hotel_id', hotel.id)
+          .in('status', ['confirmed', 'checked_in', 'checked_out'])
+
+        const occupiedRooms = activeBookings?.reduce((count, booking: any) => {
+          return count + (booking.booking_rooms?.length || 0)
+        }, 0) || 0
+
+        const revenue = allBookings?.reduce((sum, booking) => sum + (booking.total_price || 0), 0) || 0
+
+        const occupancy = totalRooms && totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0
+
+        stats.push({
+          hotel_id: hotel.id,
+          hotel_name: hotel.name,
+          location: hotel.location,
+          occupancy,
+          revenue,
+          total_rooms: totalRooms || 0,
+          occupied_rooms: occupiedRooms
+        })
+      }
+
+      setHotelStats(stats)
+    } catch (err) {
+      console.error('Hotel stats error:', err)
     }
   }
 
@@ -274,11 +358,8 @@ if (err instanceof Error) {
                   </div>
                 </div>
                 <p className="text-sm text-gray-600 mb-1">Total Bookings</p>
-                <p className="text-2xl font-bold text-gray-900 mb-2">
+                <p className="text-2xl font-bold text-gray-900">
                   {systemStats?.total_bookings || 0}
-                </p>
-                <p className="text-xs text-green-600 font-medium">
-                  +12.5% from last month
                 </p>
               </CardContent>
             </Card>
@@ -291,11 +372,8 @@ if (err instanceof Error) {
                   </div>
                 </div>
                 <p className="text-sm text-gray-600 mb-1">Revenue</p>
-                <p className="text-2xl font-bold text-gray-900 mb-2">
+                <p className="text-2xl font-bold text-gray-900">
                   ${systemStats?.total_revenue.toLocaleString() || '0'}
-                </p>
-                <p className="text-xs text-green-600 font-medium">
-                  +8.2% from last month
                 </p>
               </CardContent>
             </Card>
@@ -308,11 +386,10 @@ if (err instanceof Error) {
                   </div>
                 </div>
                 <p className="text-sm text-gray-600 mb-1">Occupancy Rate</p>
-                <p className="text-2xl font-bold text-gray-900 mb-2">
-                  {systemStats?.total_rooms ? Math.round((systemStats.total_bookings / systemStats.total_rooms) * 100) : 0}%
-                </p>
-                <p className="text-xs text-green-600 font-medium">
-                  +3.1% from last month
+                <p className="text-2xl font-bold text-gray-900">
+                  {hotelStats.length > 0
+                    ? Math.round(hotelStats.reduce((sum, h) => sum + h.occupancy, 0) / hotelStats.length)
+                    : 0}%
                 </p>
               </CardContent>
             </Card>
@@ -325,11 +402,8 @@ if (err instanceof Error) {
                   </div>
                 </div>
                 <p className="text-sm text-gray-600 mb-1">Active Guests</p>
-                <p className="text-2xl font-bold text-gray-900 mb-2">
+                <p className="text-2xl font-bold text-gray-900">
                   {systemStats?.total_users || 0}
-                </p>
-                <p className="text-xs text-green-600 font-medium">
-                  +15.3% from last month
                 </p>
               </CardContent>
             </Card>
@@ -354,6 +428,9 @@ if (err instanceof Error) {
                           <p className="font-medium text-gray-900 text-sm">{booking.guest.full_name}</p>
                           <p className="text-xs text-gray-500">
                             {booking.hotel.name} - Room {booking.booking_rooms[0]?.room.room_number}
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            {booking.booking_rooms[0]?.room.room_type}
                           </p>
                           <p className="text-xs text-gray-500 mt-1">
                             {new Date(booking.check_in).toLocaleDateString()} - {new Date(booking.check_out).toLocaleDateString()}
@@ -380,25 +457,30 @@ if (err instanceof Error) {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {hotels.length === 0 ? (
-                    <p className="text-sm text-gray-500 text-center py-8">No hotels found</p>
+                  {hotelStats.length === 0 ? (
+                    <p className="text-sm text-gray-500 text-center py-8">No hotel data available</p>
                   ) : (
-                    hotels.map((hotel) => (
-                      <div key={hotel.id} className="py-3 border-b last:border-0">
+                    hotelStats.map((hotel) => (
+                      <div key={hotel.hotel_id} className="py-3 border-b last:border-0">
                         <div className="flex items-center justify-between mb-2">
                           <div>
-                            <p className="font-medium text-gray-900 text-sm">{hotel.name}</p>
+                            <p className="font-medium text-gray-900 text-sm">{hotel.hotel_name}</p>
                             <p className="text-xs text-gray-500">{hotel.location} Atoll</p>
                           </div>
                         </div>
                         <div className="flex items-center justify-between text-sm">
                           <div>
                             <p className="text-xs text-gray-500">Occupancy</p>
-                            <p className="font-semibold text-gray-900">75%</p>
+                            <p className="font-semibold text-gray-900">{hotel.occupancy}%</p>
+                            <p className="text-xs text-gray-400 mt-1">
+                              {hotel.occupied_rooms}/{hotel.total_rooms} rooms
+                            </p>
                           </div>
                           <div className="text-right">
                             <p className="text-xs text-gray-500">Revenue</p>
-                            <p className="font-semibold text-gray-900">$12,450</p>
+                            <p className="font-semibold text-gray-900">
+                              ${hotel.revenue.toLocaleString()}
+                            </p>
                           </div>
                         </div>
                       </div>

@@ -22,6 +22,8 @@ interface Booking {
   status: string
   total_price: number
   num_guests: number
+  phone?: string
+  special_requests?: string
   guest: {
     full_name: string
     email: string
@@ -32,6 +34,7 @@ interface Booking {
   booking_rooms: {
     room: {
       room_number: string
+      room_type: string
     }
   }[]
 }
@@ -72,6 +75,8 @@ export default function BookingsPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [viewDialogOpen, setViewDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -129,59 +134,156 @@ export default function BookingsPage() {
     try {
       setLoading(true)
 
+      // Fetch bookings
       const { data: bookingsData, error: bookingsError } = await supabase
         .from('bookings')
-        .select(`
-          id,
-          check_in,
-          check_out,
-          status,
-          total_price,
-          num_guests,
-          guest_id,
-          hotel_id,
-          booking_rooms(
-            room:rooms(room_number)
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
 
       if (bookingsError) {
         console.error('Bookings error:', bookingsError)
+        setError(`Failed to load bookings: ${bookingsError.message}`)
         setBookings([])
-      } else if (bookingsData) {
-        // Fetch guest and hotel data separately
-        const guestIds = [...new Set(bookingsData.map(b => b.guest_id))]
-        const hotelIds = [...new Set(bookingsData.map(b => b.hotel_id))]
-
-        const { data: guests } = await supabase
-          .from('profiles')
-          .select('id, full_name, email')
-          .in('id', guestIds)
-
-        const { data: hotels } = await supabase
-          .from('hotels')
-          .select('id, name')
-          .in('id', hotelIds)
-
-        const guestMap = new Map(guests?.map(g => [g.id, g]) || [])
-        const hotelMap = new Map(hotels?.map(h => [h.id, h]) || [])
-
-        const transformedBookings = bookingsData.map((booking: any) => ({
-          ...booking,
-          guest: guestMap.get(booking.guest_id) || { full_name: 'Unknown', email: '' },
-          hotel: hotelMap.get(booking.hotel_id) || { name: 'Unknown' }
-        }))
-
-        setBookings(transformedBookings)
+        return
       }
+
+      if (!bookingsData || bookingsData.length === 0) {
+        setBookings([])
+        return
+      }
+
+      console.log('Fetched bookings:', bookingsData.length)
+      console.log('Sample booking data:', bookingsData.slice(0, 2))
+
+      // Fetch all profiles with email from auth.users
+      // Since profiles.id references auth.users.id, we can join them
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, role')
+
+      if (profilesError) {
+        console.error('Profiles fetch error:', profilesError)
+      }
+
+      // Fetch all hotels
+      const { data: hotelsData } = await supabase
+        .from('hotels')
+        .select('id, name')
+
+      // Fetch booking_rooms with room details
+      const { data: bookingRoomsData } = await supabase
+        .from('booking_rooms')
+        .select(`
+          booking_id,
+          room_id,
+          rooms(
+            room_number,
+            room_type_id,
+            hotel_id
+          )
+        `)
+
+      // Fetch room types
+      const { data: roomTypesData } = await supabase
+        .from('room_types')
+        .select('id, name')
+
+      console.log('Profiles:', profilesData?.length || 0)
+      console.log('Sample profiles:', profilesData?.slice(0, 2))
+      console.log('Hotels:', hotelsData?.length || 0)
+      console.log('Sample hotels:', hotelsData)
+      console.log('Booking rooms:', bookingRoomsData?.length || 0)
+      console.log('Sample booking_rooms:', bookingRoomsData?.slice(0, 3))
+      console.log('Room types:', roomTypesData?.length || 0)
+
+      // Get unique guest_ids from bookings that don't have profiles
+      const guestIdsWithoutProfiles = bookingsData
+        .map(b => b.guest_id)
+        .filter(guestId => !profilesData?.find(p => p.id === guestId))
+
+      console.log('Guest IDs without profiles:', guestIdsWithoutProfiles.length)
+      console.log('Sample missing guest IDs:', guestIdsWithoutProfiles.slice(0, 3))
+
+      // Create lookup maps
+      const profilesMap = new Map(profilesData?.map(p => [p.id, p]) || [])
+      const hotelsMap = new Map(hotelsData?.map(h => [h.id, h]) || [])
+      const roomTypesMap = new Map(roomTypesData?.map(rt => [rt.id, rt]) || [])
+
+      // Group booking rooms by booking_id
+      const bookingRoomsMap = new Map<string, any[]>()
+      bookingRoomsData?.forEach(br => {
+        if (!bookingRoomsMap.has(br.booking_id)) {
+          bookingRoomsMap.set(br.booking_id, [])
+        }
+        bookingRoomsMap.get(br.booking_id)?.push(br)
+      })
+
+      // Transform bookings with joined data
+      const transformedBookings = bookingsData.map((booking: any, index: number) => {
+        const guest = profilesMap.get(booking.guest_id)
+        const bookingRooms = bookingRoomsMap.get(booking.id) || []
+
+        // Get hotel from the room's hotel_id since booking.hotel_id is null
+        let hotel = null
+        let hotelFromRoom = null
+        if (booking.hotel_id) {
+          hotel = hotelsMap.get(booking.hotel_id)
+        }
+        // Try to get hotel from first room if booking doesn't have hotel_id
+        if (!hotel && bookingRooms.length > 0 && bookingRooms[0].rooms?.hotel_id) {
+          hotelFromRoom = hotelsMap.get(bookingRooms[0].rooms.hotel_id)
+        }
+
+        const finalHotel = hotel || hotelFromRoom
+
+        console.log(`Booking ${index}:`, {
+          id: booking.id,
+          guest_id: booking.guest_id,
+          hotel_id: booking.hotel_id,
+          room_hotel_id: bookingRooms[0]?.rooms?.hotel_id,
+          found_guest: !!guest,
+          found_hotel: !!finalHotel,
+          num_rooms: bookingRooms.length
+        })
+
+        if (!guest) {
+          console.warn(`Booking ${booking.id}: No profile found for guest_id ${booking.guest_id}`)
+        }
+        if (!finalHotel) {
+          console.warn(`Booking ${booking.id}: No hotel found`)
+        }
+
+        return {
+          ...booking,
+          guest: guest || { full_name: 'Unknown', email: '' },
+          hotel: finalHotel || { name: 'Unknown' },
+          booking_rooms: bookingRooms.map((br: any) => {
+            const roomType = br.rooms?.room_type_id
+              ? roomTypesMap.get(br.rooms.room_type_id)
+              : null
+
+            return {
+              room: {
+                room_number: br.rooms?.room_number || 'Unknown',
+                room_type: roomType?.name || 'Unknown'
+              }
+            }
+          })
+        }
+      })
+
+      console.log('Transformed bookings:', transformedBookings.length)
+      setBookings(transformedBookings)
+
     } catch (err) {
       console.error('Loading error:', err)
       if (err instanceof Error) {
         console.error('Error message:', err.message)
         console.error('Stack trace:', err.stack)
+        setError(`Failed to load bookings: ${err.message}`)
       } else {
         console.error('Error details:', JSON.stringify(err, null, 2))
+        setError('Failed to load bookings: Unknown error')
       }
     } finally {
       setLoading(false)
@@ -385,9 +487,51 @@ export default function BookingsPage() {
     }
   }
 
+  const handleViewClick = (booking: Booking) => {
+    setSelectedBooking(booking)
+    setViewDialogOpen(true)
+  }
+
   const handleEditClick = (booking: Booking) => {
     setSelectedBooking(booking)
     setEditDialogOpen(true)
+  }
+
+  const handleDeleteClick = (booking: Booking) => {
+    setSelectedBooking(booking)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDeleteBooking = async () => {
+    if (!selectedBooking) return
+
+    try {
+      setError('')
+      setSuccess('')
+
+      const { error: deleteError } = await supabase
+        .from('bookings')
+        .delete()
+        .eq('id', selectedBooking.id)
+
+      if (deleteError) throw deleteError
+
+      setSuccess('Booking deleted successfully!')
+
+      // Reload bookings
+      await loadBookings()
+
+      // Close dialog after delay
+      setTimeout(() => {
+        setDeleteDialogOpen(false)
+        setSelectedBooking(null)
+        setSuccess('')
+      }, 1500)
+
+    } catch (err: any) {
+      console.error('Delete booking error:', err)
+      setError(err.message || 'Failed to delete booking')
+    }
   }
 
   const handleUpdateBooking = async (newStatus: string) => {
@@ -700,7 +844,7 @@ export default function BookingsPage() {
 
                     <div className="grid gap-2">
                       <Label>Update Status</Label>
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-3 gap-2 mb-2">
                         <Button
                           variant={selectedBooking.status === 'pending' ? 'default' : 'outline'}
                           className={
@@ -724,6 +868,32 @@ export default function BookingsPage() {
                           disabled={selectedBooking.status === 'confirmed'}
                         >
                           Confirmed
+                        </Button>
+                        <Button
+                          variant={selectedBooking.status === 'checked_in' ? 'default' : 'outline'}
+                          className={
+                            selectedBooking.status === 'checked_in'
+                              ? 'bg-blue-600 hover:bg-blue-700'
+                              : 'hover:bg-blue-50'
+                          }
+                          onClick={() => handleUpdateBooking('checked_in')}
+                          disabled={selectedBooking.status === 'checked_in'}
+                        >
+                          Checked In
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button
+                          variant={selectedBooking.status === 'checked_out' ? 'default' : 'outline'}
+                          className={
+                            selectedBooking.status === 'checked_out'
+                              ? 'bg-purple-600 hover:bg-purple-700'
+                              : 'hover:bg-purple-50'
+                          }
+                          onClick={() => handleUpdateBooking('checked_out')}
+                          disabled={selectedBooking.status === 'checked_out'}
+                        >
+                          Checked Out
                         </Button>
                         <Button
                           variant={selectedBooking.status === 'cancelled' ? 'default' : 'outline'}
@@ -757,7 +927,203 @@ export default function BookingsPage() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+
+            {/* View Booking Dialog */}
+            <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+              <DialogContent className="sm:max-w-[600px]">
+                <DialogHeader>
+                  <DialogTitle>Booking Details</DialogTitle>
+                  <DialogDescription>
+                    Complete booking information
+                  </DialogDescription>
+                </DialogHeader>
+
+                {selectedBooking && (
+                  <div className="space-y-4 py-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-xs text-gray-500">Booking ID</Label>
+                        <p className="font-mono text-sm">#{selectedBooking.id.slice(0, 8)}</p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-gray-500">Status</Label>
+                        <div className="mt-1">
+                          <Badge
+                            className={
+                              selectedBooking.status === 'confirmed'
+                                ? 'bg-green-100 text-green-700 border-0'
+                                : selectedBooking.status === 'pending'
+                                ? 'bg-yellow-100 text-yellow-700 border-0'
+                                : selectedBooking.status === 'checked_in'
+                                ? 'bg-blue-100 text-blue-700 border-0'
+                                : selectedBooking.status === 'checked_out'
+                                ? 'bg-purple-100 text-purple-700 border-0'
+                                : 'bg-red-100 text-red-700 border-0'
+                            }
+                          >
+                            {selectedBooking.status}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="border-t pt-4">
+                      <h3 className="font-semibold mb-3">Guest Information</h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-xs text-gray-500">Name</Label>
+                          <p className="text-sm">{selectedBooking.guest.full_name}</p>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-gray-500">Email</Label>
+                          <p className="text-sm">{selectedBooking.guest.email}</p>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-gray-500">Phone</Label>
+                          <p className="text-sm">{selectedBooking.phone || 'Not provided'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-gray-500">Number of Guests</Label>
+                          <p className="text-sm">{selectedBooking.num_guests}</p>
+                        </div>
+                      </div>
+                      {selectedBooking.special_requests && (
+                        <div className="mt-4">
+                          <Label className="text-xs text-gray-500">Special Requests</Label>
+                          <p className="text-sm bg-gray-50 p-3 rounded-md mt-1">
+                            {selectedBooking.special_requests}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="border-t pt-4">
+                      <h3 className="font-semibold mb-3">Accommodation</h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-xs text-gray-500">Hotel</Label>
+                          <p className="text-sm">{selectedBooking.hotel.name}</p>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-gray-500">Room</Label>
+                          <p className="text-sm">
+                            {selectedBooking.booking_rooms[0]?.room.room_number || 'N/A'}
+                          </p>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-gray-500">Room Type</Label>
+                          <p className="text-sm">
+                            {selectedBooking.booking_rooms[0]?.room.room_type || 'N/A'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="border-t pt-4">
+                      <h3 className="font-semibold mb-3">Dates & Payment</h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-xs text-gray-500">Check-In</Label>
+                          <p className="text-sm">{new Date(selectedBooking.check_in).toLocaleDateString()}</p>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-gray-500">Check-Out</Label>
+                          <p className="text-sm">{new Date(selectedBooking.check_out).toLocaleDateString()}</p>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-gray-500">Total Price</Label>
+                          <p className="text-lg font-semibold text-green-600">
+                            ${selectedBooking.total_price.toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setViewDialogOpen(false)
+                      setSelectedBooking(null)
+                    }}
+                  >
+                    Close
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+              <DialogContent className="sm:max-w-[400px]">
+                <DialogHeader>
+                  <DialogTitle>Delete Booking</DialogTitle>
+                  <DialogDescription>
+                    Are you sure you want to delete this booking? This action cannot be undone.
+                  </DialogDescription>
+                </DialogHeader>
+
+                {error && (
+                  <Alert variant="destructive" className="mb-4">
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+
+                {success && (
+                  <Alert className="mb-4 bg-green-50 text-green-900 border-green-200">
+                    <AlertDescription>{success}</AlertDescription>
+                  </Alert>
+                )}
+
+                {selectedBooking && (
+                  <div className="bg-red-50 p-4 rounded-lg space-y-2">
+                    <p className="text-sm text-gray-700">
+                      <strong>Booking ID:</strong> #{selectedBooking.id.slice(0, 8)}
+                    </p>
+                    <p className="text-sm text-gray-700">
+                      <strong>Guest:</strong> {selectedBooking.guest.full_name}
+                    </p>
+                    <p className="text-sm text-gray-700">
+                      <strong>Hotel:</strong> {selectedBooking.hotel.name}
+                    </p>
+                    <p className="text-sm text-gray-700">
+                      <strong>Dates:</strong> {new Date(selectedBooking.check_in).toLocaleDateString()} - {new Date(selectedBooking.check_out).toLocaleDateString()}
+                    </p>
+                  </div>
+                )}
+
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setDeleteDialogOpen(false)
+                      setSelectedBooking(null)
+                      setError('')
+                      setSuccess('')
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={handleDeleteBooking}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    Delete Booking
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
+
+          {/* Error Display */}
+          {error && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
           {/* Search and Filter */}
           <Card className="bg-white shadow-sm mb-6">
@@ -778,8 +1144,10 @@ export default function BookingsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="confirmed">Confirmed</SelectItem>
                     <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="confirmed">Confirmed</SelectItem>
+                    <SelectItem value="checked_in">Checked In</SelectItem>
+                    <SelectItem value="checked_out">Checked Out</SelectItem>
                     <SelectItem value="cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
@@ -828,6 +1196,9 @@ export default function BookingsPage() {
                             <p className="text-sm text-gray-500">
                               Room {booking.booking_rooms[0]?.room.room_number}
                             </p>
+                            <p className="text-xs text-gray-400">
+                              {booking.booking_rooms[0]?.room.room_type}
+                            </p>
                           </div>
                         </TableCell>
                         <TableCell className="text-sm text-gray-600">
@@ -847,24 +1218,37 @@ export default function BookingsPage() {
                                 ? 'bg-green-100 text-green-700 border-0'
                                 : booking.status === 'pending'
                                 ? 'bg-yellow-100 text-yellow-700 border-0'
+                                : booking.status === 'checked_in'
+                                ? 'bg-blue-100 text-blue-700 border-0'
+                                : booking.status === 'checked_out'
+                                ? 'bg-purple-100 text-purple-700 border-0'
                                 : 'bg-red-100 text-red-700 border-0'
                             }
                           >
-                            {booking.status}
+                            {booking.status === 'checked_in' ? 'checked in' : booking.status === 'checked_out' ? 'checked out' : booking.status}
                           </Badge>
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-2">
-                            <button className="p-1 text-gray-600 hover:text-blue-600">
+                            <button
+                              className="p-1 text-gray-600 hover:text-blue-600"
+                              onClick={() => handleViewClick(booking)}
+                              title="View details"
+                            >
                               <Eye className="w-4 h-4" />
                             </button>
                             <button
                               className="p-1 text-gray-600 hover:text-purple-600"
                               onClick={() => handleEditClick(booking)}
+                              title="Edit status"
                             >
                               <Edit className="w-4 h-4" />
                             </button>
-                            <button className="p-1 text-gray-600 hover:text-red-600">
+                            <button
+                              className="p-1 text-gray-600 hover:text-red-600"
+                              onClick={() => handleDeleteClick(booking)}
+                              title="Delete booking"
+                            >
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </div>

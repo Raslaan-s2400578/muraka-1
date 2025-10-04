@@ -277,6 +277,9 @@ function BookingPageContent() {
         }
       }
 
+      // Send booking confirmation email (async, don't block user)
+      sendBookingConfirmationEmail(booking, roomType, availableRooms[0])
+
       // Redirect to confirmation or dashboard
       router.push(`/dashboard/guest?booking=${booking.id}`)
     } catch (err) {
@@ -284,6 +287,30 @@ function BookingPageContent() {
       setError('Failed to create booking. Please try again.')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  // Helper function to send booking confirmation email (async)
+  const sendBookingConfirmationEmail = async (booking: any, roomType: any, room: any) => {
+    try {
+      const { sendBookingConfirmation, formatEmailDate } = await import('@/lib/email/send')
+
+      await sendBookingConfirmation(user?.email || '', {
+        guestName: form.fullName,
+        bookingId: booking.id,
+        hotelName: roomType.hotel[0]?.name || 'Muraka Hotel',
+        roomNumber: room.room_number || 'TBD',
+        roomType: roomType.name,
+        checkIn: formatEmailDate(checkIn!),
+        checkOut: formatEmailDate(checkOut!),
+        numberOfGuests: guests,
+        totalAmount: booking.total_price,
+        phone: form.phone || undefined,
+        specialRequests: form.specialRequests || undefined,
+      })
+    } catch (emailError) {
+      // Log but don't block the booking flow
+      console.error('Failed to send booking confirmation email:', emailError)
     }
   }
 

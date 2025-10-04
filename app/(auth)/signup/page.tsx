@@ -110,6 +110,10 @@ export default function SignupPage() {
         }
 
         console.log('Profile created successfully')
+
+        // Send welcome email (async, don't block the flow)
+        sendWelcomeEmailAsync(email, fullName)
+
         setMessage('Account created successfully! Check your email for the confirmation link!')
       }
     } catch (err) {
@@ -117,6 +121,17 @@ export default function SignupPage() {
       setError(`An unexpected error occurred: ${err instanceof Error ? err.message : 'Unknown error'}`)
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Helper to send welcome email asynchronously
+  const sendWelcomeEmailAsync = async (email: string, name: string) => {
+    try {
+      const { sendWelcomeEmail } = await import('@/lib/email/send')
+      await sendWelcomeEmail(email, name)
+    } catch (emailError) {
+      // Log but don't block signup
+      console.error('Failed to send welcome email:', emailError)
     }
   }
 

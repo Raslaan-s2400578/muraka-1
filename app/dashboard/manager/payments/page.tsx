@@ -257,15 +257,14 @@ export default function PaymentsPage() {
       <Sidebar
         activeView={activeView}
         setActiveView={(view) => {
-          if (view === 'dashboard') router.push('/dashboard/admin')
-          else if (view === 'bookings') router.push('/dashboard/admin/bookings')
-          else if (view === 'hotels') router.push('/dashboard/admin/hotels')
-          else if (view === 'customers') router.push('/dashboard/admin/customers')
-          else if (view === 'payments') router.push('/dashboard/admin/payments')
-          else if (view === 'reports') router.push('/dashboard/admin/reports')
-          else if (view === 'users') router.push('/dashboard/admin/users')
+          if (view === 'dashboard') router.push('/dashboard/manager')
+          else if (view === 'bookings') router.push('/dashboard/manager/bookings')
+          else if (view === 'hotels') router.push('/dashboard/manager/hotels')
+          else if (view === 'customers') router.push('/dashboard/manager/customers')
+          else if (view === 'payments') router.push('/dashboard/manager/payments')
+          else if (view === 'reports') router.push('/dashboard/manager/reports')
         }}
-        user={{ name: profile?.full_name || '', role: 'Admin' }}
+        user={{ name: profile?.full_name || '', role: profile?.role || 'Manager' }}
         onLogout={handleSignOut}
       />
 

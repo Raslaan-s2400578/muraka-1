@@ -121,7 +121,7 @@ export default function AdminDashboard() {
 
       setHotels(hotelsData || [])
 
-      // Load recent bookings with room types
+      // Load recent bookings with room types and hotel info
       const { data: bookingsData, error: bookingsError } = await supabase
         .from('bookings')
         .select(`
@@ -135,6 +135,7 @@ export default function AdminDashboard() {
           booking_rooms(
             rooms(
               room_number,
+              hotel_id,
               room_types(name)
             )
           )
@@ -145,14 +146,19 @@ export default function AdminDashboard() {
       if (bookingsError) {
         console.error('Bookings error:', bookingsError)
       } else if (bookingsData && bookingsData.length > 0) {
-        // Fetch guest and hotel data separately
+        // Fetch guest data
         const guestIds = [...new Set(bookingsData.map(b => b.guest_id))]
-        const hotelIds = [...new Set(bookingsData.map(b => b.hotel_id))]
-
         const { data: guests } = await supabase
           .from('profiles')
           .select('id, full_name')
           .in('id', guestIds)
+
+        // Get hotel IDs from rooms (since booking.hotel_id is null)
+        const hotelIds = [...new Set(
+          bookingsData.flatMap(b =>
+            b.booking_rooms?.map((br: any) => br.rooms?.hotel_id).filter(Boolean) || []
+          )
+        )]
 
         const { data: hotels } = await supabase
           .from('hotels')
@@ -162,17 +168,21 @@ export default function AdminDashboard() {
         const guestMap = new Map(guests?.map(g => [g.id, g]) || [])
         const hotelMap = new Map(hotels?.map(h => [h.id, h]) || [])
 
-        const transformedBookings = bookingsData.map((booking: any) => ({
-          ...booking,
-          guest: guestMap.get(booking.guest_id) || { full_name: 'Unknown' },
-          hotel: hotelMap.get(booking.hotel_id) || { name: 'Unknown' },
-          booking_rooms: booking.booking_rooms?.map((br: any) => ({
-            room: {
-              room_number: br.rooms?.room_number || 'Unknown',
-              room_type: br.rooms?.room_types?.name || 'Unknown'
-            }
-          })) || []
-        }))
+        const transformedBookings = bookingsData.map((booking: any) => {
+          // Get hotel from room's hotel_id
+          const hotelId = booking.booking_rooms?.[0]?.rooms?.hotel_id
+          return {
+            ...booking,
+            guest: guestMap.get(booking.guest_id) || { full_name: 'Unknown' },
+            hotel: hotelMap.get(hotelId) || { name: 'Unknown' },
+            booking_rooms: booking.booking_rooms?.map((br: any) => ({
+              room: {
+                room_number: br.rooms?.room_number || 'Unknown',
+                room_type: br.rooms?.room_types?.name || 'Unknown'
+              }
+            })) || []
+          }
+        })
 
         setRecentBookings(transformedBookings)
       }
@@ -244,28 +254,77 @@ if (err instanceof Error) {
           .select('*', { count: 'exact', head: true })
           .eq('hotel_id', hotel.id)
 
-        // Get active bookings for this hotel (currently ongoing - check_in <= today <= check_out)
+        // Get all room IDs for this hotel
+        const { data: hotelRooms } = await supabase
+          .from('rooms')
+          .select('id')
+          .eq('hotel_id', hotel.id)
+
+        const roomIds = hotelRooms?.map(r => r.id) || []
+
+        if (roomIds.length === 0) {
+          stats.push({
+            hotel_id: hotel.id,
+            hotel_name: hotel.name,
+            location: hotel.location,
+            occupancy: 0,
+            revenue: 0,
+            total_rooms: totalRooms || 0,
+            occupied_rooms: 0
+          })
+          continue
+        }
+
+        // Get booking_rooms for this hotel's rooms
+        const { data: bookingRooms } = await supabase
+          .from('booking_rooms')
+          .select('booking_id, room_id')
+          .in('room_id', roomIds)
+
+        const bookingIds = [...new Set(bookingRooms?.map(br => br.booking_id) || [])]
+
+        if (bookingIds.length === 0) {
+          stats.push({
+            hotel_id: hotel.id,
+            hotel_name: hotel.name,
+            location: hotel.location,
+            occupancy: 0,
+            revenue: 0,
+            total_rooms: totalRooms || 0,
+            occupied_rooms: 0
+          })
+          continue
+        }
+
+        // Get active bookings (currently ongoing)
         const { data: activeBookings } = await supabase
           .from('bookings')
-          .select('id, total_price, booking_rooms(room_id)')
-          .eq('hotel_id', hotel.id)
+          .select('id, total_price, check_in, check_out, status')
+          .in('id', bookingIds)
           .lte('check_in', today)
           .gte('check_out', today)
           .neq('status', 'cancelled')
 
-        // Get all confirmed/completed bookings revenue for this hotel
-        const { data: allBookings } = await supabase
+        // Get all confirmed/completed bookings for revenue
+        const { data: revenueBookings } = await supabase
           .from('bookings')
           .select('total_price')
-          .eq('hotel_id', hotel.id)
+          .in('id', bookingIds)
           .in('status', ['confirmed', 'checked_in', 'checked_out'])
 
-        const occupiedRooms = activeBookings?.reduce((count, booking: any) => {
-          return count + (booking.booking_rooms?.length || 0)
-        }, 0) || 0
+        // Count occupied rooms from active bookings
+        let occupiedRooms = 0
+        if (activeBookings && activeBookings.length > 0) {
+          const activeBookingIds = activeBookings.map(b => b.id)
+          const { data: activeBookingRooms } = await supabase
+            .from('booking_rooms')
+            .select('room_id')
+            .in('booking_id', activeBookingIds)
 
-        const revenue = allBookings?.reduce((sum, booking) => sum + (booking.total_price || 0), 0) || 0
+          occupiedRooms = activeBookingRooms?.length || 0
+        }
 
+        const revenue = revenueBookings?.reduce((sum, booking) => sum + (booking.total_price || 0), 0) || 0
         const occupancy = totalRooms && totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0
 
         stats.push({
@@ -323,6 +382,7 @@ if (err instanceof Error) {
           else if (view === 'customers') router.push('/dashboard/admin/customers')
           else if (view === 'payments') router.push('/dashboard/admin/payments')
           else if (view === 'reports') router.push('/dashboard/admin/reports')
+          else if (view === 'users') router.push('/dashboard/admin/users')
         }}
         user={{ name: profile?.full_name || '', role: 'Admin' }}
         onLogout={handleSignOut}

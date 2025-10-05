@@ -267,6 +267,7 @@ if (err instanceof Error) {
           else if (view === 'customers') router.push('/dashboard/admin/customers')
           else if (view === 'payments') router.push('/dashboard/admin/payments')
           else if (view === 'reports') router.push('/dashboard/admin/reports')
+          else if (view === 'users') router.push('/dashboard/admin/users')
         }}
         user={{ name: profile?.full_name || '', role: 'Admin' }}
         onLogout={handleSignOut}

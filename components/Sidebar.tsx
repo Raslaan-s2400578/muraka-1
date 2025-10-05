@@ -1,6 +1,6 @@
 'use client'
 
-import { Calendar, CreditCard, Building, ChartLine, Users, Settings, LogOut, ChartBar } from 'lucide-react';
+import { Calendar, CreditCard, Building, ChartLine, Users, Settings, LogOut, ChartBar, UserCog } from 'lucide-react';
 
 interface SidebarProps {
   activeView: string;
@@ -10,16 +10,22 @@ interface SidebarProps {
 }
 
 export function Sidebar({ activeView, setActiveView, user, onLogout }: SidebarProps) {
-  const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: ChartLine },
-    { id: 'bookings', label: 'Bookings', icon: Calendar },
-    { id: 'hotels', label: 'Hotels', icon: Building },
-    { id: 'customers', label: 'Customers', icon: Users },
-    { id: 'payments', label: 'Payments', icon: CreditCard },
-    { id: 'reports', label: 'Reports', icon: ChartBar },
+  // Define all menu items with role restrictions
+  const allMenuItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: ChartLine, roles: ['admin', 'manager', 'staff'] },
+    { id: 'bookings', label: 'Bookings', icon: Calendar, roles: ['admin', 'manager', 'staff'] },
+    { id: 'hotels', label: 'Hotels', icon: Building, roles: ['admin', 'manager'] },
+    { id: 'customers', label: 'Customers', icon: Users, roles: ['admin', 'manager', 'staff'] },
+    { id: 'payments', label: 'Payments', icon: CreditCard, roles: ['admin', 'manager', 'staff'] },
+    { id: 'reports', label: 'Reports', icon: ChartBar, roles: ['admin', 'manager'] },
+    { id: 'users', label: 'Users', icon: UserCog, roles: ['admin'] },
   ];
 
   if (!user) return null;
+
+  // Filter menu items based on user role
+  const userRole = user.role.toLowerCase();
+  const menuItems = allMenuItems.filter(item => item.roles.includes(userRole));
 
   return (
     <div className="w-64 bg-white border-r border-gray-200 min-h-screen flex flex-col fixed left-0 top-0 shadow-sm">

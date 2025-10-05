@@ -853,16 +853,16 @@ export default function StaffDashboard() {
                         </TableCell>
                         <TableCell>
                           <div>
-                            <p>{room.room_type.name}</p>
+                            <p>{room.room_type?.name || 'Unknown'}</p>
                             <p className="text-sm text-gray-500">
-                              {room.room_type.capacity} guests
+                              {room.room_type?.capacity || 0} guests
                             </p>
                           </div>
                         </TableCell>
                         <TableCell>
                           <div>
-                            <p>{room.hotel.name}</p>
-                            <p className="text-sm text-gray-500">{room.hotel.location}</p>
+                            <p>{room.hotel?.name || 'Unknown'}</p>
+                            <p className="text-sm text-gray-500">{room.hotel?.location || ''}</p>
                           </div>
                         </TableCell>
                         <TableCell>

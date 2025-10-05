@@ -277,6 +277,23 @@ function BookingPageContent() {
         }
       }
 
+      // Create payment record
+      const { error: paymentError } = await supabase
+        .from('payments')
+        .insert({
+          booking_id: booking.id,
+          amount: totals.total,
+          status: 'pending',
+          payment_method: 'credit_card', // Default for now
+          transaction_id: `TXN-${Date.now()}-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
+          payment_date: new Date().toISOString()
+        })
+
+      if (paymentError) {
+        console.error('Payment creation error:', paymentError)
+        // Don't throw - payment can be created later
+      }
+
       // Send booking confirmation email (async, don't block user)
       sendBookingConfirmationEmail(booking, roomType, availableRooms[0])
 

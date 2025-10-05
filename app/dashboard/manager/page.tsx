@@ -323,40 +323,40 @@ if (err instanceof Error) {
       <Sidebar
         activeView={activeView}
         setActiveView={(view) => {
-          console.log('🔵 Manager Navigation clicked:', view)
+          
 
           // Dashboard = stay on manager page, just update active state
           if (view === 'dashboard') {
-            console.log('✅ Already on manager dashboard, updating active state')
+            
             setActiveView(view)
           }
           // Other views = navigate to admin pages
           else if (view === 'bookings') {
-            console.log('➡️ Navigating to /dashboard/admin/bookings')
-            router.push('/dashboard/admin/bookings')
+            
+            router.push('/dashboard/manager/bookings')
           }
           else if (view === 'hotels') {
-            console.log('➡️ Navigating to /dashboard/admin/hotels')
-            router.push('/dashboard/admin/hotels')
+            
+            router.push('/dashboard/manager/hotels')
           }
           else if (view === 'customers') {
-            console.log('➡️ Navigating to /dashboard/admin/customers')
-            router.push('/dashboard/admin/customers')
+            
+            router.push('/dashboard/manager/customers')
           }
           else if (view === 'payments') {
-            console.log('➡️ Navigating to /dashboard/admin/payments')
-            router.push('/dashboard/admin/payments')
+            
+            router.push('/dashboard/manager/payments')
           }
           else if (view === 'reports') {
-            console.log('➡️ Navigating to /dashboard/admin/reports')
-            router.push('/dashboard/admin/reports')
+            
+            router.push('/dashboard/manager/reports')
           }
           else {
-            console.log('⚠️ Unknown view:', view)
+            
             setActiveView(view)
           }
         }}
-        user={{ name: profile?.full_name || '', role: 'Manager' }}
+        user={{ name: profile?.full_name || '', role: profile?.role || 'Manager' }}
         onLogout={handleSignOut}
       />
 

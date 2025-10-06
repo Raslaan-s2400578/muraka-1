@@ -1,135 +1,381 @@
-# Muraka Hotels - Luxury Resort Management System
+# 🏝️ Muraka Hotels - Maldives Luxury Resort Booking System
 
-Full-stack hotel management system for three Maldivian resort locations. Built with Next.js 15, TypeScript, Supabase, and Tailwind CSS.
-
-## Tech Stack
-
-- **Next.js 15** - App Router, Server Components
-- **TypeScript 5.9** - Full type safety
-- **Supabase** - PostgreSQL, Auth, RLS
-- **Tailwind CSS 4** - Responsive styling
-- **shadcn/ui** - Component library
-- **TanStack Query** - Data fetching
-- **React Hook Form + Zod** - Form validation
-- **GSAP + Lenis** - Animations
-
-## Quick Start
-
-```bash
-# Install
-npm install
-
-# Environment (.env.local)
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-RESEND_API_KEY=your_resend_key
-RESEND_FROM_EMAIL=noreply@yourdomain.com
-
-# Database Setup
-# 1. Create Supabase project
-# 2. Run: supabase/schema.sql
-# 3. Run: supabase/seed.sql
-
-# Dev server
-npm run dev
-```
-
-## Features
-
-**Guests:** Room search, booking, profile management
-**Staff:** Check-ins, room status, guest services
-**Managers:** Analytics, pricing, staff oversight
-**Admins:** User management, system configuration
-
-## Database Schema
-
-- **hotels** - 3 resort locations
-- **room_types** - 4 room categories (pricing)
-- **rooms** - Individual room inventory
-- **profiles** - User profiles + roles
-- **bookings** - Reservations
-- **services** - Add-ons (transfers, spa, etc.)
-
-Security: RLS enabled on all tables
-
-## Test Accounts
-
-Password for all: `Welcome@123`
-
-```
-admin@test.com    - Full access
-manager@test.com  - Analytics & pricing
-staff@test.com    - Operations
-guest@test.com    - Booking only
-```
-
-After signup, set roles via SQL:
-```sql
-UPDATE profiles SET role = 'admin'
-WHERE id = (SELECT id FROM auth.users WHERE email = 'admin@test.com');
-```
-
-## Deployment
-
-**Vercel (Recommended):**
-1. Push to GitHub
-2. Import to Vercel
-3. Add environment variables
-4. Deploy
-
-**Cloudflare Pages:**
-1. Disable Supabase Realtime (Edge Runtime incompatible)
-2. Connect repository
-3. Build: `npm run build`, Output: `.next`
-4. Deploy
-
-## Project Structure
-
-```
-app/
-  (auth)/           - Login, signup
-  dashboard/        - Role-based dashboards
-  api/              - API routes
-components/         - Reusable components
-  ui/               - shadcn/ui
-lib/
-  supabase/         - Client & server instances
-  email/            - Email templates
-hooks/              - Custom React hooks
-middleware.ts       - Auth & RBAC
-supabase/           - Database files
-```
-
-## Scripts
-
-```bash
-npm run dev     # Development server
-npm run build   # Production build
-npm run lint    # ESLint
-```
-
-## Security
-
-- Password: 8+ chars, mixed case, number, special char
-- Session timeout: 15 minutes inactivity
-- RLS policies: Role-based data access
-- Environment variables: Secure credential management
-
-## Production Status
-
-✅ TypeScript: 0 errors
-⚠️ ESLint: 10 warnings (image optimization recommended)
-✅ Build: Successful
-✅ Security: RLS + RBAC implemented
-✅ Ready for deployment
-
-Optional optimization: Replace `<img>` with Next.js `<Image>` component for 30-50% bandwidth reduction.
-
-## License
-
-MIT License - See LICENSE file
+A full-stack hotel booking and management system built with Next.js 15, Supabase, and deployed on Cloudflare Pages.
 
 ---
 
-Built with ❤️ for Muraka Hotels
+## 🚀 Quick Start
+
+### 1. Clone & Install
+
+```bash
+git clone https://github.com/Raslaan-s2400578/muraka.git
+cd muraka
+npm install
+```
+
+### 2. Environment Setup
+
+Create `.env.local`:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+```
+
+### 3. Database Setup
+
+Run these SQL files in your Supabase SQL Editor (in order):
+
+1. `supabase/migrations/20250101000000_add_reviews.sql`
+2. `supabase/migrations/20250101000001_add_promotions.sql`
+3. `supabase/migrations/20250101000002_fix_payments_policy.sql`
+
+### 4. Run Development Server
+
+```bash
+npm run dev
+```
+
+Visit: http://localhost:3000
+
+---
+
+## 👥 Default Login Credentials
+
+### Admin Portal
+
+```
+Email: admin@muraka.com
+Password: admin123
+Dashboard: /dashboard/admin
+```
+
+### Manager Portal
+
+```
+Email: manager@muraka.com
+Password: manager123
+Dashboard: /dashboard/manager
+```
+
+### Staff Portal
+
+```
+Email: staff@muraka.com
+Password: staff123
+Dashboard: /dashboard/staff
+```
+
+### Guest Portal
+
+```
+Email: guest@muraka.com
+Password: guest123
+Dashboard: /dashboard/guest
+```
+
+---
+
+## 🏗️ Tech Stack
+
+- **Framework:** Next.js 15.5.4 (App Router)
+- **Database:** Supabase (PostgreSQL)
+- **Authentication:** Supabase Auth
+- **Styling:** Tailwind CSS
+- **UI Components:** shadcn/ui
+- **Deployment:** Cloudflare Pages
+- **Email:** Resend
+
+---
+
+## ✨ Features
+
+### Guest Features
+
+- 🔍 Search & book rooms across 3 locations
+- 💳 Payment history with downloadable receipts
+- ⭐ 5-star review system for completed stays
+- 👤 Profile management
+- 📧 Email notifications
+- 📱 Responsive design
+
+### Staff Features
+
+- 📊 Booking management
+- 👥 Customer management
+- 💰 Payment tracking
+- 🏨 Hotel & room overview
+
+### Manager Features
+
+- 📈 Analytics dashboard
+- 📉 Occupancy tracking
+- 💵 Revenue reports
+- 🎯 Performance metrics
+
+### Admin Features
+
+- 👨‍💼 User management (create staff/manager accounts)
+- 🏨 Hotel & room management
+- 💸 Payment management
+- 📊 Complete system overview
+- ⚙️ System configuration
+
+---
+
+## 📁 Project Structure
+
+```
+muraka/
+├── app/                    # Next.js app directory
+│   ├── api/               # API routes
+│   ├── dashboard/         # Dashboard pages (admin/staff/manager/guest)
+│   ├── booking/           # Booking flow
+│   ├── login/             # Authentication
+│   └── signup/            # Registration
+├── components/            # Reusable components
+├── lib/                   # Utilities & config
+│   ├── supabase/         # Supabase client
+│   └── email/            # Email templates
+├── supabase/
+│   └── migrations/       # Database migrations (REQUIRED)
+└── public/               # Static assets
+```
+
+---
+
+## 🗄️ Database Schema
+
+### Main Tables
+
+- `profiles` - User profiles with roles (admin/staff/manager/guest)
+- `hotels` - 3 hotel locations in Maldives
+- `room_types` - Different room categories
+- `rooms` - Individual room inventory
+- `bookings` - Guest reservations
+- `payments` - Payment records
+- `reviews` - Guest reviews (5-star rating)
+- `promotions` - Seasonal discounts
+- `newsletter_subscribers` - Email list
+
+---
+
+## 🚀 Deployment to Cloudflare Pages
+
+### Prerequisites
+
+⚠️ **CRITICAL:** All 3 SQL migrations MUST be run first!
+
+### Steps
+
+1. **Push to GitHub:**
+
+   ```bash
+   git add .
+   git commit -m "Production deployment"
+   git push origin feature/roles
+   ```
+
+2. **Cloudflare Pages Setup:**
+   - Go to [Cloudflare Pages](https://dash.cloudflare.com/)
+   - Create project → Connect Git
+   - Select repository: `muraka`
+   - Branch: `feature/roles`
+
+3. **Build Settings:**
+
+   ```
+   Build command: npm run build
+   Build output: .next
+   Framework: Next.js
+   ```
+
+4. **Environment Variables:**
+   Add these in Cloudflare:
+
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=...
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+   SUPABASE_SERVICE_ROLE_KEY=...
+   ```
+
+5. **Deploy!**
+   Build time: ~2 minutes
+
+6. **Post-Deployment:**
+   - Update Supabase Auth redirect URLs with your Cloudflare domain
+   - Test all login flows
+   - Verify payments work
+
+---
+
+## 🏨 Hotel Locations
+
+1. **Muraka Male** - Urban luxury near capital
+2. **Muraka Laamu** - Pristine nature & diving
+3. **Muraka Faafu** - Secluded paradise
+
+---
+
+## 🔐 Security Features
+
+- ✅ Row Level Security (RLS) on all tables
+- ✅ Role-based access control
+- ✅ Secure password hashing
+- ✅ Email verification
+- ✅ Protected API routes
+- ✅ Service role key isolation
+
+---
+
+## 📧 Email Notifications
+
+Automated emails for:
+
+- Welcome message on signup
+- Booking confirmation
+- Payment receipts
+- (Newsletter coming soon)
+
+---
+
+## 🐛 Troubleshooting
+
+### Build Fails
+
+```bash
+# Clean build cache
+rm -rf .next
+npm run build
+```
+
+### Database Connection Issues
+
+- Verify `.env.local` has correct Supabase credentials
+- Check Supabase project is not paused
+
+### Login Not Working
+
+- Run database migrations
+- Check RLS policies are enabled
+- Verify user exists in `profiles` table
+
+### Payment Creation Fails
+
+- **CRITICAL:** Run migration #3 (`fix_payments_policy.sql`)
+- This enables guests to create payment records
+
+---
+
+## 📝 Development Commands
+
+```bash
+npm run dev          # Start dev server
+npm run build        # Production build
+npm run start        # Start production server
+npm run lint         # Run ESLint
+```
+
+---
+
+## 🎯 API Routes
+
+### Public
+
+- `POST /api/auth/*` - Authentication (Supabase)
+
+### Protected (Admin Only)
+
+- `POST /api/admin/create-user` - Create staff/manager/admin accounts
+
+### Development
+
+- `GET /api/test-email` - Test email sending
+
+---
+
+## 🔄 Workflow
+
+### Guest Booking Flow
+
+1. Search rooms → Select dates & location
+2. Choose room type → Review details
+3. Enter guest info → Make payment
+4. Receive email confirmation
+5. View booking in dashboard
+6. After checkout → Leave review
+
+### Admin User Creation Flow
+
+1. Login as admin
+2. Dashboard → Users → Create User
+3. Enter: email, password, name, NID, role
+4. User receives welcome email
+5. User can login immediately
+
+---
+
+## 📊 Features by Version
+
+### v1.0 (Current - Production Ready)
+
+- ✅ Multi-role authentication system
+- ✅ Booking & payment management
+- ✅ Review/rating system
+- ✅ Email notifications
+- ✅ Admin user creation
+- ✅ Real-time hotel metrics
+- ✅ Responsive design
+
+### v1.1 (Planned)
+
+- 🔜 Booking modifications
+- 🔜 Dynamic availability calendar
+- 🔜 Interactive location map
+- 🔜 Newsletter system
+- 🔜 Seasonal promotions UI
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create feature branch: `git checkout -b feature/amazing-feature`
+3. Commit changes: `git commit -m 'Add amazing feature'`
+4. Push to branch: `git push origin feature/amazing-feature`
+5. Open Pull Request
+
+---
+
+## 📄 License
+
+This project is for educational/portfolio purposes.
+
+---
+
+## 👨‍💻 Developer
+
+**Mohamed Raslaan**
+
+- GitHub: [@Raslaan-s2400578](https://github.com/Raslaan-s2400578)
+- Project: Muraka Hotels Management System
+
+---
+
+## 🙏 Acknowledgments
+
+- Next.js Team for the amazing framework
+- Supabase for the backend infrastructure
+- shadcn/ui for beautiful components
+- resnend for the fast emails
+- Cloudflare for edge deployment
+
+---
+
+**Built with ❤️ in the Maldives**
+
+**Version:** 1.0.0
+**Last Updated:** October 6, 2025
+**Status:** 🟢 Production Ready

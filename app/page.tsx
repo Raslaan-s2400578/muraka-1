@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar'
 import { Badge } from '@/components/ui/badge'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { MobileNav } from '@/components/MobileNav'
 import {
   CalendarIcon, MapPinIcon, UsersIcon, StarIcon, ChevronLeft, ChevronRight,
   Utensils, Waves, Sparkles, Anchor, Wind, Baby, Dumbbell, Wifi, MapPin,
@@ -428,23 +429,28 @@ export default function Home() {
           : "bg-white/95 backdrop-blur-lg shadow-lg"
       )}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
-            <div className="flex items-center">
+          <div className="flex justify-between items-center h-16 lg:h-20">
+            {/* Mobile Menu Button */}
+            <MobileNav navbarTransparent={navbarTransparent} />
+
+            {/* Logo - Centered on mobile, left on desktop */}
+            <div className="flex items-center lg:flex-none absolute left-1/2 transform -translate-x-1/2 lg:relative lg:left-0 lg:transform-none">
               <h1 className={cn(
-                "text-3xl font-serif font-bold transition-colors duration-300",
+                "text-2xl sm:text-3xl font-serif font-bold transition-colors duration-300",
                 navbarTransparent ? "text-white drop-shadow-lg" : "text-blue-900"
               )}>
                 MURAKA
               </h1>
               <span className={cn(
-                "ml-2 text-sm tracking-[0.2em] transition-colors duration-300",
+                "ml-2 text-xs sm:text-sm tracking-[0.2em] transition-colors duration-300",
                 navbarTransparent ? "text-white/90" : "text-blue-700"
               )}>
                 HOTELS
               </span>
             </div>
 
-            <nav className="hidden md:flex items-center space-x-8">
+            {/* Desktop Navigation - Hidden on mobile/tablet */}
+            <nav className="hidden lg:flex items-center space-x-8">
               <Link
                 href="/rooms"
                 className={cn(
@@ -468,7 +474,8 @@ export default function Home() {
               ))}
             </nav>
 
-            <div className="flex items-center space-x-4">
+            {/* Desktop User Actions - Hidden on mobile */}
+            <div className="hidden lg:flex items-center space-x-4">
               {user ? (
                 <>
                   <Button
@@ -491,7 +498,10 @@ export default function Home() {
                   <Button
                     variant="ghost"
                     asChild
-                    className={navbarTransparent ? "text-white hover:text-white/80" : ""}
+                    className={cn(
+                      "hidden md:flex",
+                      navbarTransparent ? "text-white hover:text-white/80" : ""
+                    )}
                   >
                     <Link href="/login">Sign In</Link>
                   </Button>
@@ -504,16 +514,28 @@ export default function Home() {
                 </>
               )}
             </div>
+
+            {/* Mobile Book Now Button */}
+            <div className="lg:hidden">
+              <Button
+                asChild
+                size="sm"
+                className="bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-700 text-white text-xs px-3 py-2 h-9"
+              >
+                <Link href="/signup">Book</Link>
+              </Button>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Floating Find Rooms CTA */}
+      {/* Floating Find Rooms CTA - Responsive */}
       <Button
         onClick={() => router.push('/rooms')}
-        className="fixed bottom-8 right-8 z-40 bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-700 text-white shadow-2xl rounded-full px-8 py-6 text-lg font-semibold animate-pulse"
+        className="fixed bottom-4 right-4 sm:bottom-8 sm:right-8 z-40 bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-700 text-white shadow-2xl rounded-full px-4 py-3 sm:px-8 sm:py-6 text-sm sm:text-lg font-semibold animate-pulse"
       >
-        Find Rooms
+        <span className="hidden sm:inline">Find Rooms</span>
+        <span className="sm:hidden">Rooms</span>
       </Button>
 
       {/* Hero Section - Fullscreen with Parallax */}
@@ -537,27 +559,27 @@ export default function Home() {
           </div>
         ))}
 
-        {/* Hero Content */}
-        <div className="hero-content absolute inset-0 flex items-center justify-center text-center text-white px-4">
-          <div className="max-w-4xl">
-            <h2 className="text-6xl md:text-8xl font-serif font-bold mb-6 drop-shadow-2xl">
+        {/* Hero Content - Responsive */}
+        <div className="hero-content absolute inset-0 flex items-center justify-center text-center text-white px-4 sm:px-6">
+          <div className="max-w-4xl w-full">
+            <h2 className="text-3xl sm:text-5xl md:text-6xl lg:text-8xl font-serif font-bold mb-4 sm:mb-6 drop-shadow-2xl">
               {heroSlides[currentSlide].title}
             </h2>
-            <p className="text-2xl md:text-4xl font-light mb-12 drop-shadow-lg">
+            <p className="text-lg sm:text-xl md:text-2xl lg:text-4xl font-light mb-8 sm:mb-12 drop-shadow-lg">
               {heroSlides[currentSlide].subtitle}
             </p>
 
-            {/* Quick Booking Form in Hero */}
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 max-w-4xl mx-auto border border-white/20">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Quick Booking Form in Hero - Responsive */}
+            <div className="bg-white/10 backdrop-blur-md rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto border border-white/20">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className="w-full justify-start text-left font-normal bg-white/90 hover:bg-white border-none"
+                      className="w-full justify-start text-left font-normal bg-white/90 hover:bg-white border-none h-12 sm:h-auto"
                     >
                       <CalendarIcon className="mr-2 h-4 w-4 text-blue-600" />
-                      <span className="text-gray-700">
+                      <span className="text-gray-700 text-sm sm:text-base">
                         {checkIn ? format(checkIn, "MMM dd, yyyy") : "Check-in"}
                       </span>
                     </Button>
@@ -576,10 +598,10 @@ export default function Home() {
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className="w-full justify-start text-left font-normal bg-white/90 hover:bg-white border-none"
+                      className="w-full justify-start text-left font-normal bg-white/90 hover:bg-white border-none h-12 sm:h-auto"
                     >
                       <CalendarIcon className="mr-2 h-4 w-4 text-blue-600" />
-                      <span className="text-gray-700">
+                      <span className="text-gray-700 text-sm sm:text-base">
                         {checkOut ? format(checkOut, "MMM dd, yyyy") : "Check-out"}
                       </span>
                     </Button>
@@ -595,7 +617,7 @@ export default function Home() {
                 </Popover>
 
                 <Select value={guests} onValueChange={setGuests}>
-                  <SelectTrigger className="bg-white/90 hover:bg-white border-none text-gray-900">
+                  <SelectTrigger className="bg-white/90 hover:bg-white border-none text-gray-900 h-12 sm:h-auto">
                     <SelectValue placeholder="2 Guests" className="text-gray-900" />
                   </SelectTrigger>
                   <SelectContent>
@@ -609,9 +631,10 @@ export default function Home() {
 
                 <Button
                   onClick={handleSearch}
-                  className="bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-700 text-white font-semibold"
+                  className="bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-700 text-white font-semibold h-12 sm:h-auto text-sm sm:text-base"
                 >
-                  Search Availability
+                  <span className="hidden sm:inline">Search Availability</span>
+                  <span className="sm:hidden">Search</span>
                 </Button>
               </div>
             </div>
@@ -635,19 +658,19 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Signature Experiences */}
-      <section id="experiences" className="animate-section py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white to-blue-50">
+      {/* Signature Experiences - Responsive */}
+      <section id="experiences" className="animate-section py-12 sm:py-16 lg:py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white to-blue-50">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h3 className="text-5xl font-serif font-bold text-gray-900 mb-4">
+          <div className="text-center mb-8 sm:mb-12 lg:mb-16">
+            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-bold text-gray-900 mb-3 sm:mb-4">
               Signature Experiences
             </h3>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <p className="text-base sm:text-lg lg:text-xl text-gray-600 max-w-3xl mx-auto px-4">
               Discover extraordinary moments that define luxury in the Maldives
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
             {experiences.map((exp, index) => {
               const IconComponent = getIcon(exp.iconName)
               return (
@@ -655,20 +678,21 @@ export default function Home() {
                   key={index}
                   className="group overflow-hidden hover:shadow-2xl transition-all duration-500 border-0 p-0"
                 >
-                  <div className="relative h-96 overflow-hidden">
+                  <div className="relative h-64 sm:h-80 lg:h-96 overflow-hidden">
                     <img
                       src={exp.image}
                       alt={exp.title}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
-                    <div className="absolute bottom-0 left-0 right-0 p-8 text-white">
-                      <IconComponent className="w-12 h-12 mb-4 text-gold-400" />
-                      <h4 className="text-3xl font-serif font-bold mb-2">{exp.title}</h4>
-                      <p className="text-lg text-white/90">{exp.description}</p>
+                    <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 lg:p-8 text-white">
+                      <IconComponent className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 mb-3 sm:mb-4 text-gold-400" />
+                      <h4 className="text-xl sm:text-2xl lg:text-3xl font-serif font-bold mb-2">{exp.title}</h4>
+                      <p className="text-sm sm:text-base lg:text-lg text-white/90 mb-3 sm:mb-4">{exp.description}</p>
                       <Button
                         variant="outline"
-                        className="mt-4 border-white text-black bg-white hover:bg-gold-500 hover:text-white hover:border-gold-500 transition-all"
+                        size="sm"
+                        className="border-white text-black bg-white hover:bg-gold-500 hover:text-white hover:border-gold-500 transition-all min-h-[48px] sm:min-h-0"
                       >
                         Learn More
                       </Button>
@@ -681,53 +705,53 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Room Types - Enhanced */}
-      <section id="rooms" className="animate-section py-24 px-4 sm:px-6 lg:px-8 bg-white">
+      {/* Room Types - Responsive */}
+      <section id="rooms" className="animate-section py-12 sm:py-16 lg:py-24 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h3 className="text-5xl font-serif font-bold text-gray-900 mb-4">
+          <div className="text-center mb-8 sm:mb-12 lg:mb-16">
+            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-bold text-gray-900 mb-3 sm:mb-4">
               Room Types
             </h3>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <p className="text-base sm:text-lg lg:text-xl text-gray-600 max-w-3xl mx-auto px-4">
               Choose from our elegantly designed rooms and suites
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
             {roomTypes.map((room, index) => (
               <Card key={index} className="overflow-hidden hover:shadow-2xl transition-all duration-500 group border-0 p-0">
-                <div className="relative h-80 overflow-hidden">
+                <div className="relative h-56 sm:h-64 lg:h-80 overflow-hidden">
                   <img
                     src={room.image}
                     alt={room.name}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                   />
-                  <div className="absolute top-4 right-4 bg-gold-500 text-white px-4 py-2 rounded-full font-semibold">
+                  <div className="absolute top-3 sm:top-4 right-3 sm:right-4 bg-gold-500 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full font-semibold text-xs sm:text-sm">
                     From ${room.priceFrom}/night
                   </div>
-                  <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm text-gray-900 px-4 py-2 rounded-full font-semibold text-sm">
+                  <div className="absolute top-3 sm:top-4 left-3 sm:left-4 bg-white/90 backdrop-blur-sm text-gray-900 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full font-semibold text-xs sm:text-sm">
                     {room.size}
                   </div>
                 </div>
-                <CardContent className="p-8">
-                  <div className="mb-4">
-                    <h4 className="text-2xl font-serif font-bold text-gray-900 mb-2">{room.name}</h4>
+                <CardContent className="p-4 sm:p-6 lg:p-8">
+                  <div className="mb-3 sm:mb-4">
+                    <h4 className="text-xl sm:text-2xl font-serif font-bold text-gray-900 mb-2">{room.name}</h4>
                   </div>
-                  <p className="text-gray-600 mb-6">{room.description}</p>
+                  <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">{room.description}</p>
 
-                  <div className="flex flex-wrap gap-2 mb-6">
+                  <div className="flex flex-wrap gap-2 mb-4 sm:mb-6">
                     {room.amenities.map((amenity, idx) => (
-                      <Badge key={idx} variant="outline" className="text-sm">
+                      <Badge key={idx} variant="outline" className="text-xs sm:text-sm">
                         {amenity}
                       </Badge>
                     ))}
                   </div>
 
-                  <div className="flex gap-3">
-                    <Button className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800">
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Button className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 min-h-[48px] sm:min-h-0">
                       View Details
                     </Button>
-                    <Button className="flex-1 bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-700">
+                    <Button className="flex-1 bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-700 min-h-[48px] sm:min-h-0">
                       Book Now
                     </Button>
                   </div>
@@ -738,48 +762,48 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Spa & Wellness */}
-      <section id="spa" className="animate-section py-24 px-4 sm:px-6 lg:px-8 bg-white">
+      {/* Spa & Wellness - Responsive */}
+      <section id="spa" className="animate-section py-12 sm:py-16 lg:py-24 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h3 className="text-5xl font-serif font-bold text-gray-900 mb-4">
+          <div className="text-center mb-8 sm:mb-12 lg:mb-16">
+            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-bold text-gray-900 mb-3 sm:mb-4">
               Spa & Wellness
             </h3>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <p className="text-base sm:text-lg lg:text-xl text-gray-600 max-w-3xl mx-auto px-4">
               Rejuvenate your body and mind with our world-class spa treatments
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-6">
-              <h4 className="text-3xl font-serif font-bold text-gray-900">The Muraka Spa Experience</h4>
-              <p className="text-lg text-gray-600 leading-relaxed">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-10 lg:gap-12 items-center">
+            <div className="space-y-4 sm:space-y-6">
+              <h4 className="text-2xl sm:text-3xl font-serif font-bold text-gray-900">The Muraka Spa Experience</h4>
+              <p className="text-sm sm:text-base lg:text-lg text-gray-600 leading-relaxed">
                 Our award-winning spa offers a sanctuary of peace and tranquility, featuring overwater treatment rooms with glass floor panels revealing the vibrant marine life below.
               </p>
-              <div className="grid grid-cols-2 gap-6">
-                <div className="bg-blue-50 p-6 rounded-lg">
-                  <h5 className="font-serif font-bold text-xl text-gray-900 mb-2">Massage Therapies</h5>
-                  <p className="text-gray-600 text-sm">Traditional and modern techniques</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                <div className="bg-blue-50 p-4 sm:p-6 rounded-lg">
+                  <h5 className="font-serif font-bold text-lg sm:text-xl text-gray-900 mb-2">Massage Therapies</h5>
+                  <p className="text-gray-600 text-xs sm:text-sm">Traditional and modern techniques</p>
                 </div>
-                <div className="bg-blue-50 p-6 rounded-lg">
-                  <h5 className="font-serif font-bold text-xl text-gray-900 mb-2">Facial Treatments</h5>
-                  <p className="text-gray-600 text-sm">Luxury skincare rituals</p>
+                <div className="bg-blue-50 p-4 sm:p-6 rounded-lg">
+                  <h5 className="font-serif font-bold text-lg sm:text-xl text-gray-900 mb-2">Facial Treatments</h5>
+                  <p className="text-gray-600 text-xs sm:text-sm">Luxury skincare rituals</p>
                 </div>
-                <div className="bg-blue-50 p-6 rounded-lg">
-                  <h5 className="font-serif font-bold text-xl text-gray-900 mb-2">Body Treatments</h5>
-                  <p className="text-gray-600 text-sm">Scrubs, wraps & therapies</p>
+                <div className="bg-blue-50 p-4 sm:p-6 rounded-lg">
+                  <h5 className="font-serif font-bold text-lg sm:text-xl text-gray-900 mb-2">Body Treatments</h5>
+                  <p className="text-gray-600 text-xs sm:text-sm">Scrubs, wraps & therapies</p>
                 </div>
-                <div className="bg-blue-50 p-6 rounded-lg">
-                  <h5 className="font-serif font-bold text-xl text-gray-900 mb-2">Yoga & Meditation</h5>
-                  <p className="text-gray-600 text-sm">Daily wellness sessions</p>
+                <div className="bg-blue-50 p-4 sm:p-6 rounded-lg">
+                  <h5 className="font-serif font-bold text-lg sm:text-xl text-gray-900 mb-2">Yoga & Meditation</h5>
+                  <p className="text-gray-600 text-xs sm:text-sm">Daily wellness sessions</p>
                 </div>
               </div>
-              <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-lg px-8 py-6">
+              <Button className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-base sm:text-lg px-6 sm:px-8 py-4 sm:py-6 min-h-[48px] sm:min-h-0">
                 Book Spa Treatment
               </Button>
             </div>
 
-            <div className="relative h-[600px] rounded-2xl overflow-hidden shadow-2xl">
+            <div className="relative h-64 sm:h-96 lg:h-[600px] rounded-2xl overflow-hidden shadow-2xl">
               <img
                 src="https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=1200&q=80"
                 alt="Spa Treatment"
@@ -791,38 +815,38 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Dining & Bars */}
-      <section id="dining" className="animate-section py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-blue-50 to-white">
+      {/* Dining & Bars - Responsive */}
+      <section id="dining" className="animate-section py-12 sm:py-16 lg:py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-blue-50 to-white">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h3 className="text-5xl font-serif font-bold text-gray-900 mb-4">
+          <div className="text-center mb-8 sm:mb-12 lg:mb-16">
+            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-bold text-gray-900 mb-3 sm:mb-4">
               Dining & Bars
             </h3>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <p className="text-base sm:text-lg lg:text-xl text-gray-600 max-w-3xl mx-auto px-4">
               Savor world-class cuisine in breathtaking settings
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {restaurants.map((restaurant, index) => (
               <Card key={index} className="overflow-hidden hover:shadow-2xl transition-all duration-500 group border-0 p-0">
-                <div className="relative h-64 overflow-hidden">
+                <div className="relative h-48 sm:h-56 lg:h-64 overflow-hidden">
                   <img
                     src={restaurant.image}
                     alt={restaurant.name}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
-                  <div className="absolute bottom-4 left-4 right-4 text-white">
-                    <h4 className="text-2xl font-serif font-bold mb-1">{restaurant.name}</h4>
-                    <p className="text-sm text-gold-400">{restaurant.cuisine}</p>
+                  <div className="absolute bottom-3 sm:bottom-4 left-3 sm:left-4 right-3 sm:right-4 text-white">
+                    <h4 className="text-xl sm:text-2xl font-serif font-bold mb-1">{restaurant.name}</h4>
+                    <p className="text-xs sm:text-sm text-gold-400">{restaurant.cuisine}</p>
                   </div>
                 </div>
-                <CardContent className="p-6">
-                  <p className="text-gray-700 mb-3">{restaurant.description}</p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500">{restaurant.ambiance}</span>
-                    <Button variant="outline" size="sm">Reserve Table</Button>
+                <CardContent className="p-4 sm:p-6">
+                  <p className="text-sm sm:text-base text-gray-700 mb-3">{restaurant.description}</p>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <span className="text-xs sm:text-sm text-gray-500">{restaurant.ambiance}</span>
+                    <Button variant="outline" size="sm" className="w-full sm:w-auto min-h-[48px] sm:min-h-0">Reserve Table</Button>
                   </div>
                 </CardContent>
               </Card>
@@ -831,28 +855,28 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Amenities */}
-      <section id="amenities" className="animate-section py-24 px-4 sm:px-6 lg:px-8 bg-white">
+      {/* Amenities - Responsive */}
+      <section id="amenities" className="animate-section py-12 sm:py-16 lg:py-24 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h3 className="text-5xl font-serif font-bold text-gray-900 mb-4">
+          <div className="text-center mb-8 sm:mb-12 lg:mb-16">
+            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-bold text-gray-900 mb-3 sm:mb-4">
               World-Class Amenities
             </h3>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <p className="text-base sm:text-lg lg:text-xl text-gray-600 max-w-3xl mx-auto px-4">
               Everything you need for an unforgettable stay
             </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
             {amenitiesData.map((amenity, index) => {
               const IconComponent = getIcon(amenity.iconName)
               return (
                 <div key={index} className="amenity-icon text-center group cursor-pointer">
-                  <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <IconComponent className="w-10 h-10 text-white" />
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-3 sm:mb-4 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <IconComponent className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
                   </div>
-                  <h4 className="font-semibold text-gray-900 mb-1">{amenity.title}</h4>
-                  <p className="text-sm text-gray-600">{amenity.description}</p>
+                  <h4 className="font-semibold text-sm sm:text-base text-gray-900 mb-1">{amenity.title}</h4>
+                  <p className="text-xs sm:text-sm text-gray-600">{amenity.description}</p>
                 </div>
               )
             })}
@@ -894,50 +918,50 @@ export default function Home() {
           <div
             key={index}
             className={cn(
-              "py-24 px-4 sm:px-6 lg:px-8",
+              "py-12 sm:py-16 lg:py-24 px-4 sm:px-6 lg:px-8",
               index % 2 === 1 && "bg-white/50"
             )}
           >
             <div className="max-w-7xl mx-auto">
               <div className={cn(
-                "grid grid-cols-1 lg:grid-cols-2 gap-12 items-center",
+                "grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-10 lg:gap-12 items-center",
                 index % 2 === 1 && "lg:grid-flow-dense"
               )}>
                 <div className={index % 2 === 1 ? "lg:col-start-2" : ""}>
-                  <div className="inline-block px-4 py-1 bg-gold-100 text-gold-700 rounded-full text-sm font-semibold mb-4">
+                  <div className="inline-block px-3 sm:px-4 py-1 bg-gold-100 text-gold-700 rounded-full text-xs sm:text-sm font-semibold mb-3 sm:mb-4">
                     {location.location}
                   </div>
-                  <h3 className="text-4xl font-serif font-bold text-gray-900 mb-4">
+                  <h3 className="text-2xl sm:text-3xl lg:text-4xl font-serif font-bold text-gray-900 mb-3 sm:mb-4">
                     {location.name}
                   </h3>
-                  <p className="text-lg text-gray-600 mb-6">{location.description}</p>
+                  <p className="text-sm sm:text-base lg:text-lg text-gray-600 mb-4 sm:mb-6">{location.description}</p>
 
-                  <div className="space-y-4 mb-6">
+                  <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
                     <div className="flex items-center gap-3">
-                      <MapPin className="w-5 h-5 text-blue-600" />
-                      <span className="text-gray-700">{location.travelTime}</span>
+                      <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
+                      <span className="text-sm sm:text-base text-gray-700">{location.travelTime}</span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <Award className="w-5 h-5 text-gold-500" />
-                      <span className="text-gray-700">{location.uniqueOffering}</span>
+                      <Award className="w-4 h-4 sm:w-5 sm:h-5 text-gold-500 flex-shrink-0" />
+                      <span className="text-sm sm:text-base text-gray-700">{location.uniqueOffering}</span>
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-2 mb-8">
+                  <div className="flex flex-wrap gap-2 mb-6 sm:mb-8">
                     {location.features.map((feature, idx) => (
-                      <Badge key={idx} className="bg-blue-100 text-blue-700 border-0">
+                      <Badge key={idx} className="bg-blue-100 text-blue-700 border-0 text-xs sm:text-sm">
                         {feature}
                       </Badge>
                     ))}
                   </div>
 
-                  <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white">
+                  <Button className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white min-h-[48px] sm:min-h-0">
                     Explore {location.name}
                   </Button>
                 </div>
 
                 <div className={cn(
-                  "relative h-96 lg:h-[500px] rounded-2xl overflow-hidden shadow-2xl",
+                  "relative h-64 sm:h-80 lg:h-[500px] rounded-2xl overflow-hidden shadow-2xl",
                   index % 2 === 1 && "lg:col-start-1 lg:row-start-1"
                 )}>
                   <img
@@ -952,24 +976,27 @@ export default function Home() {
         ))}
       </section>
 
-      {/* Gallery */}
-      <section id="gallery" className="animate-section py-24 px-4 sm:px-6 lg:px-8 bg-white">
+      {/* Gallery - Responsive */}
+      <section id="gallery" className="animate-section py-12 sm:py-16 lg:py-24 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h3 className="text-5xl font-serif font-bold text-gray-900 mb-4">
+          <div className="text-center mb-8 sm:mb-12">
+            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-bold text-gray-900 mb-3 sm:mb-4">
               Gallery
             </h3>
-            <p className="text-xl text-gray-600 mb-8">
+            <p className="text-base sm:text-lg lg:text-xl text-gray-600 mb-6 sm:mb-8">
               A glimpse into paradise
             </p>
 
-            <div className="flex justify-center gap-3 flex-wrap">
+            <div className="flex justify-center gap-2 sm:gap-3 flex-wrap px-4">
               {['All', 'Rooms', 'Dining', 'Spa', 'Activities', 'Views'].map((filter) => (
                 <Button
                   key={filter}
                   variant={galleryFilter === filter ? "default" : "outline"}
                   onClick={() => setGalleryFilter(filter)}
-                  className={galleryFilter === filter ? "bg-blue-600" : ""}
+                  className={cn(
+                    "text-xs sm:text-sm min-h-[40px] sm:min-h-0",
+                    galleryFilter === filter ? "bg-blue-600" : ""
+                  )}
                 >
                   {filter}
                 </Button>
@@ -977,7 +1004,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
             {filteredGallery.map((image, index) => (
               <div
                 key={index}
@@ -1053,20 +1080,20 @@ export default function Home() {
         </div>
       )}
 
-      {/* Testimonials - FIXED with proper carousel */}
-      <section className="animate-section py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-blue-50 to-white">
+      {/* Testimonials - Responsive with Touch Support */}
+      <section className="animate-section py-12 sm:py-16 lg:py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-blue-50 to-white">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h3 className="text-5xl font-serif font-bold text-gray-900 mb-4">
+          <div className="text-center mb-8 sm:mb-12 lg:mb-16">
+            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-bold text-gray-900 mb-3 sm:mb-4">
               Guest Reviews
             </h3>
-            <p className="text-xl text-gray-600">
+            <p className="text-base sm:text-lg lg:text-xl text-gray-600">
               Hear from our delighted guests
             </p>
           </div>
 
           <div className="relative max-w-4xl mx-auto">
-            <div className="overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div className="overflow-hidden rounded-xl sm:rounded-2xl bg-white shadow-2xl">
               {testimonials.map((review, index) => (
                 <div
                   key={index}
@@ -1077,31 +1104,31 @@ export default function Home() {
                       : "opacity-0 h-0 overflow-hidden"
                   )}
                 >
-                  <div className="p-12">
-                    <div className="flex items-center gap-6 mb-6">
+                  <div className="p-6 sm:p-8 lg:p-12">
+                    <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 mb-4 sm:mb-6">
                       <img
                         src={review.image}
                         alt={review.name}
-                        className="w-20 h-20 rounded-full object-cover ring-4 ring-gold-200"
+                        className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover ring-4 ring-gold-200"
                       />
-                      <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <h4 className="text-2xl font-semibold text-gray-900">{review.name}</h4>
+                      <div className="text-center sm:text-left">
+                        <div className="flex flex-col sm:flex-row items-center gap-2 mb-2">
+                          <h4 className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-900">{review.name}</h4>
                           {review.verified && (
-                            <CheckCircle className="w-5 h-5 text-blue-600" />
+                            <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                           )}
                         </div>
-                        <p className="text-gray-600">{review.location}</p>
+                        <p className="text-sm sm:text-base text-gray-600">{review.location}</p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1 mb-6">
+                    <div className="flex items-center justify-center sm:justify-start gap-1 mb-4 sm:mb-6">
                       {[...Array(review.rating)].map((_, i) => (
-                        <StarIcon key={i} className="w-6 h-6 fill-gold-400 text-gold-400" />
+                        <StarIcon key={i} className="w-5 h-5 sm:w-6 sm:h-6 fill-gold-400 text-gold-400" />
                       ))}
                     </div>
 
-                    <p className="text-xl text-gray-700 italic leading-relaxed">
+                    <p className="text-sm sm:text-base lg:text-xl text-gray-700 italic leading-relaxed text-center sm:text-left">
                       &ldquo;{review.comment}&rdquo;
                     </p>
                   </div>
@@ -1109,15 +1136,16 @@ export default function Home() {
               ))}
             </div>
 
-            {/* Testimonial Controls */}
-            <div className="flex justify-center items-center gap-4 mt-8">
+            {/* Testimonial Controls - Touch Friendly */}
+            <div className="flex justify-center items-center gap-3 sm:gap-4 mt-6 sm:mt-8">
               <button
                 onClick={() => setCurrentTestimonial((prev) =>
                   prev > 0 ? prev - 1 : testimonials.length - 1
                 )}
-                className="p-3 rounded-full bg-white shadow-lg hover:bg-gold-50 transition-colors"
+                className="p-2 sm:p-3 rounded-full bg-white shadow-lg hover:bg-gold-50 transition-colors min-w-[48px] min-h-[48px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
+                aria-label="Previous testimonial"
               >
-                <ChevronLeft className="w-6 h-6 text-blue-600" />
+                <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
               </button>
 
               <div className="flex gap-2">
@@ -1128,9 +1156,10 @@ export default function Home() {
                     className={cn(
                       "h-2 rounded-full transition-all",
                       index === currentTestimonial
-                        ? "bg-blue-600 w-8"
+                        ? "bg-blue-600 w-6 sm:w-8"
                         : "bg-gray-300 w-2"
                     )}
+                    aria-label={`Go to testimonial ${index + 1}`}
                   />
                 ))}
               </div>
@@ -1139,30 +1168,31 @@ export default function Home() {
                 onClick={() => setCurrentTestimonial((prev) =>
                   (prev + 1) % testimonials.length
                 )}
-                className="p-3 rounded-full bg-white shadow-lg hover:bg-gold-50 transition-colors"
+                className="p-2 sm:p-3 rounded-full bg-white shadow-lg hover:bg-gold-50 transition-colors min-w-[48px] min-h-[48px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
+                aria-label="Next testimonial"
               >
-                <ChevronRight className="w-6 h-6 text-blue-600" />
+                <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
               </button>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Booking Section */}
-      <section id="booking-section" className="animate-section py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 text-white">
+      {/* Booking Section - Responsive */}
+      <section id="booking-section" className="animate-section py-12 sm:py-16 lg:py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 text-white">
         <div className="max-w-4xl mx-auto text-center">
-          <h3 className="text-5xl font-serif font-bold mb-6">
+          <h3 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-bold mb-4 sm:mb-6">
             Begin Your Journey to Paradise
           </h3>
-          <p className="text-xl mb-12 text-white/90">
+          <p className="text-base sm:text-lg lg:text-xl mb-8 sm:mb-12 text-white/90">
             Experience the ultimate luxury escape in the Maldives
           </p>
 
           <Card className="bg-white/10 backdrop-blur-lg border-white/20">
-            <CardContent className="p-8">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <CardContent className="p-4 sm:p-6 lg:p-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4">
                 <Select value={location} onValueChange={setLocation}>
-                  <SelectTrigger className="bg-white text-gray-900">
+                  <SelectTrigger className="bg-white text-gray-900 h-12 sm:h-auto">
                     <SelectValue placeholder="Select Location" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1176,10 +1206,10 @@ export default function Home() {
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className="justify-start text-left font-normal bg-white hover:bg-gray-100"
+                      className="justify-start text-left font-normal bg-white hover:bg-gray-100 h-12 sm:h-auto"
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      <span className="text-gray-700">
+                      <span className="text-gray-700 text-sm sm:text-base">
                         {checkIn ? format(checkIn, "MMM dd, yyyy") : "Check-in"}
                       </span>
                     </Button>
@@ -1198,10 +1228,10 @@ export default function Home() {
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className="justify-start text-left font-normal bg-white hover:bg-gray-100"
+                      className="justify-start text-left font-normal bg-white hover:bg-gray-100 h-12 sm:h-auto sm:col-span-2 lg:col-span-1"
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      <span className="text-gray-700">
+                      <span className="text-gray-700 text-sm sm:text-base">
                         {checkOut ? format(checkOut, "MMM dd, yyyy") : "Check-out"}
                       </span>
                     </Button>
@@ -1220,7 +1250,7 @@ export default function Home() {
               <Button
                 onClick={handleSearch}
                 size="lg"
-                className="w-full bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-700 text-white font-semibold text-lg"
+                className="w-full bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-700 text-white font-semibold text-base sm:text-lg min-h-[48px] sm:min-h-0"
               >
                 Check Availability
               </Button>
@@ -1229,72 +1259,96 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-16 px-4 sm:px-6 lg:px-8">
+      {/* Footer - Responsive */}
+      <footer className="bg-gray-900 text-white py-8 sm:py-12 lg:py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-            <div className="md:col-span-2">
-              <h5 className="text-3xl font-serif font-bold mb-4">MURAKA HOTELS</h5>
-              <p className="text-gray-400 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-10 lg:gap-12 mb-8 sm:mb-12">
+            <div className="sm:col-span-2">
+              <h5 className="text-2xl sm:text-3xl font-serif font-bold mb-3 sm:mb-4">MURAKA HOTELS</h5>
+              <p className="text-sm sm:text-base text-gray-400 mb-4 sm:mb-6">
                 Luxury accommodation across three beautiful locations in the Maldives.
                 Experience unparalleled service and breathtaking natural beauty.
               </p>
-              <div className="flex gap-4">
-                <a href="#" className="w-10 h-10 bg-white/10 hover:bg-gold-500 rounded-full flex items-center justify-center transition-colors">
+              <div className="flex gap-3 sm:gap-4">
+                <a
+                  href="https://www.instagram.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-12 h-12 bg-white/10 hover:bg-gold-500 rounded-full flex items-center justify-center transition-colors"
+                  aria-label="Instagram"
+                >
                   <Instagram className="w-5 h-5" />
                 </a>
-                <a href="#" className="w-10 h-10 bg-white/10 hover:bg-gold-500 rounded-full flex items-center justify-center transition-colors">
+                <a
+                  href="https://www.facebook.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-12 h-12 bg-white/10 hover:bg-gold-500 rounded-full flex items-center justify-center transition-colors"
+                  aria-label="Facebook"
+                >
                   <Facebook className="w-5 h-5" />
                 </a>
-                <a href="#" className="w-10 h-10 bg-white/10 hover:bg-gold-500 rounded-full flex items-center justify-center transition-colors">
+                <a
+                  href="https://www.x.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-12 h-12 bg-white/10 hover:bg-gold-500 rounded-full flex items-center justify-center transition-colors"
+                  aria-label="Twitter"
+                >
                   <Twitter className="w-5 h-5" />
                 </a>
-                <a href="#" className="w-10 h-10 bg-white/10 hover:bg-gold-500 rounded-full flex items-center justify-center transition-colors">
+                <a
+                  href="https://www.youtube.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-12 h-12 bg-white/10 hover:bg-gold-500 rounded-full flex items-center justify-center transition-colors"
+                  aria-label="YouTube"
+                >
                   <Youtube className="w-5 h-5" />
                 </a>
               </div>
             </div>
 
             <div>
-              <h5 className="text-lg font-semibold mb-4">Quick Links</h5>
-              <ul className="space-y-2 text-gray-400">
-                <li><Link href="/rooms" className="hover:text-gold-400 transition-colors">All Rooms</Link></li>
-                <li><a href="#dining" className="hover:text-gold-400 transition-colors">Dining</a></li>
-                <li><a href="#spa" className="hover:text-gold-400 transition-colors">Spa & Wellness</a></li>
-                <li><a href="#experiences" className="hover:text-gold-400 transition-colors">Experiences</a></li>
-                <li><a href="#gallery" className="hover:text-gold-400 transition-colors">Gallery</a></li>
+              <h5 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Quick Links</h5>
+              <ul className="space-y-2 text-sm sm:text-base text-gray-400">
+                <li><Link href="/rooms" className="hover:text-gold-400 transition-colors inline-block min-h-[44px] flex items-center">All Rooms</Link></li>
+                <li><a href="#dining" className="hover:text-gold-400 transition-colors inline-block min-h-[44px] flex items-center">Dining</a></li>
+                <li><a href="#spa" className="hover:text-gold-400 transition-colors inline-block min-h-[44px] flex items-center">Spa & Wellness</a></li>
+                <li><a href="#experiences" className="hover:text-gold-400 transition-colors inline-block min-h-[44px] flex items-center">Experiences</a></li>
+                <li><a href="#gallery" className="hover:text-gold-400 transition-colors inline-block min-h-[44px] flex items-center">Gallery</a></li>
               </ul>
             </div>
 
             <div>
-              <h5 className="text-lg font-semibold mb-4">Contact</h5>
-              <ul className="space-y-3 text-gray-400">
+              <h5 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Contact</h5>
+              <ul className="space-y-3 text-sm sm:text-base text-gray-400">
                 <li className="flex items-center gap-2">
-                  <Phone className="w-4 h-4" />
+                  <Phone className="w-4 h-4 flex-shrink-0" />
                   <span>+960 123 4567</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <Mail className="w-4 h-4" />
-                  <span>info@murakahotels.com</span>
+                  <Mail className="w-4 h-4 flex-shrink-0" />
+                  <span className="break-all">info@murakahotels.com</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
+                  <MapPin className="w-4 h-4 flex-shrink-0" />
                   <span>Maldives</span>
                 </li>
               </ul>
 
-              <div className="mt-6">
-                <h6 className="text-sm font-semibold mb-2">Awards & Certifications</h6>
+              <div className="mt-4 sm:mt-6">
+                <h6 className="text-xs sm:text-sm font-semibold mb-2">Awards & Certifications</h6>
                 <div className="flex gap-2">
-                  <Award className="w-6 h-6 text-gold-400" />
-                  <Award className="w-6 h-6 text-gold-400" />
+                  <Award className="w-5 h-5 sm:w-6 sm:h-6 text-gold-400" />
+                  <Award className="w-5 h-5 sm:w-6 sm:h-6 text-gold-400" />
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="border-t border-gray-800 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 Muraka Hotels. All rights reserved.</p>
+          <div className="border-t border-gray-800 pt-6 sm:pt-8 text-center text-xs sm:text-sm text-gray-400">
+            <p>&copy; 2025 Muraka Hotels. All rights reserved.</p>
           </div>
         </div>
       </footer>

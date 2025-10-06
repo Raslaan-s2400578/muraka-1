@@ -50,11 +50,37 @@ export default function Home() {
   const [roomType, setRoomType] = useState('')
   const [user, setUser] = useState<User | null>(null)
   const [userRole, setUserRole] = useState<string | null>(null)
+  const [currentSlide, setCurrentSlide] = useState(0)
   const router = useRouter()
   const supabase = createClient()
 
+  const heroSlides = [
+    {
+      title: "Underwater Luxury",
+      subtitle: "Experience paradise beneath the waves",
+      image: "from-blue-600 to-cyan-500"
+    },
+    {
+      title: "Tropical Paradise",
+      subtitle: "Your dream escape in the Maldives",
+      image: "from-teal-500 to-emerald-500"
+    },
+    {
+      title: "Exclusive Resorts",
+      subtitle: "Three stunning locations await",
+      image: "from-purple-500 to-pink-500"
+    }
+  ]
+
   useEffect(() => {
     checkUser()
+
+    // Auto-advance carousel
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % heroSlides.length)
+    }, 5000)
+
+    return () => clearInterval(interval)
   }, [])
 
   const checkUser = async () => {
@@ -141,16 +167,52 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="relative py-20 px-4 sm:px-6 lg:px-8">
+      {/* Hero Carousel */}
+      <section className="relative h-[500px] overflow-hidden">
+        {heroSlides.map((slide, index) => (
+          <div
+            key={index}
+            className={`absolute inset-0 transition-opacity duration-1000 ${
+              index === currentSlide ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
+            <div className={`w-full h-full bg-gradient-to-r ${slide.image} flex items-center justify-center`}>
+              <div className="text-center text-white px-4">
+                <h2 className="text-5xl md:text-7xl font-bold mb-4 drop-shadow-lg">
+                  {slide.title}
+                </h2>
+                <p className="text-2xl md:text-3xl font-light drop-shadow-md">
+                  {slide.subtitle}
+                </p>
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {/* Carousel Indicators */}
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex gap-3">
+          {heroSlides.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentSlide(index)}
+              className={`w-3 h-3 rounded-full transition-all ${
+                index === currentSlide
+                  ? 'bg-white w-8'
+                  : 'bg-white/50 hover:bg-white/75'
+              }`}
+            />
+          ))}
+        </div>
+      </section>
+
+      {/* Search Section */}
+      <section className="relative py-16 px-4 sm:px-6 lg:px-8 bg-gray-50">
         <div className="max-w-7xl mx-auto text-center">
-          <h2 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
-            Experience Paradise at
-            <span className="text-blue-600"> Muraka Hotels</span>
-          </h2>
-          <p className="text-xl text-gray-600 mb-12 max-w-3xl mx-auto">
-            Discover luxury accommodations across three stunning locations in the Maldives.
-            Your perfect getaway awaits at Muraka Male, Laamu, and Faafu.
+          <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            Find Your Perfect Stay
+          </h3>
+          <p className="text-lg text-gray-600 mb-8">
+            Search across our three stunning locations in the Maldives
           </p>
 
           {/* Search Form */}
@@ -383,6 +445,83 @@ export default function Home() {
               </Card>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <h3 className="text-3xl font-bold text-gray-900 mb-4">
+              Guest Reviews
+            </h3>
+            <p className="text-lg text-gray-600">
+              See what our guests are saying about their stays
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              {
+                name: 'Sarah Johnson',
+                location: 'New York, USA',
+                rating: 5,
+                comment: 'An absolutely magical experience! The underwater views from our villa were breathtaking. Staff was incredibly attentive and the food was world-class.'
+              },
+              {
+                name: 'James Chen',
+                location: 'Singapore',
+                rating: 5,
+                comment: 'Best vacation of our lives. The private beaches, crystal clear waters, and luxurious amenities exceeded all expectations. Already planning our return!'
+              },
+              {
+                name: 'Emma Williams',
+                location: 'London, UK',
+                rating: 5,
+                comment: 'Muraka Hotels redefined luxury for us. From the moment we arrived to our departure, everything was perfect. The sunset views are something you have to see to believe.'
+              }
+            ].map((review, index) => (
+              <Card key={index} className="bg-gray-50">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-1 mb-4">
+                    {[...Array(review.rating)].map((_, i) => (
+                      <StarIcon key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                    ))}
+                  </div>
+                  <p className="text-gray-700 mb-4 italic">&ldquo;{review.comment}&rdquo;</p>
+                  <div className="border-t pt-4">
+                    <p className="font-semibold text-gray-900">{review.name}</p>
+                    <p className="text-sm text-gray-500">{review.location}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Newsletter */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-600 to-purple-600">
+        <div className="max-w-4xl mx-auto text-center">
+          <h3 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            Stay Updated with Special Offers
+          </h3>
+          <p className="text-xl text-white/90 mb-8">
+            Subscribe to our newsletter for exclusive deals and travel inspiration
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-2xl mx-auto">
+            <input
+              type="email"
+              placeholder="Enter your email address"
+              className="flex-1 px-6 py-4 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-white"
+            />
+            <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100 px-8">
+              Subscribe
+            </Button>
+          </div>
+          <p className="text-white/75 text-sm mt-4">
+            We respect your privacy. Unsubscribe at any time.
+          </p>
         </div>
       </section>
 

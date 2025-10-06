@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { CreditCard, Clock, CheckCircle, XCircle, Download, Search, Eye, Edit, Trash2, Landmark } from 'lucide-react'
+import { CreditCard, Clock, CheckCircle, XCircle, Search, Eye, Edit, Trash2, Landmark } from 'lucide-react'
 
 interface Payment {
   id: string
@@ -128,8 +128,8 @@ export default function PaymentsPage() {
       const transformedPayments: Payment[] = paymentsData.map((payment: any) => {
         const guest = guestMap.get(payment.bookings?.guest_id)
         return {
-          id: payment.id.slice(0, 13).toUpperCase(),
-          booking_id: payment.booking_id.slice(0, 8),
+          id: payment.id.length > 13 ? payment.id.slice(0, 13).toUpperCase() : payment.id.toUpperCase(),
+          booking_id: payment.booking_id.length > 8 ? payment.booking_id.slice(0, 8) : payment.booking_id,
           amount: payment.amount,
           status: payment.status,
           payment_method: payment.payment_method,
@@ -272,15 +272,9 @@ export default function PaymentsPage() {
       <div className="ml-64">
         <div className="max-w-7xl mx-auto px-6 py-8">
           {/* Page Header */}
-          <div className="mb-8 flex justify-between items-start">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Payment Management</h1>
-              <p className="text-gray-600">Track and manage all payment transactions</p>
-            </div>
-            <Button className="bg-white hover:bg-gray-50 text-gray-700 border border-gray-300">
-              <Download className="w-4 h-4 mr-2" />
-              Export
-            </Button>
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Payment Management</h1>
+            <p className="text-gray-600">Track and manage all payment transactions</p>
           </div>
 
           {/* Stats Cards */}

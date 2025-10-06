@@ -278,7 +278,7 @@ function BookingPageContent() {
       }
 
       // Create payment record
-      const { error: paymentError } = await supabase
+      const { data: paymentData, error: paymentError } = await supabase
         .from('payments')
         .insert({
           booking_id: booking.id,
@@ -288,10 +288,14 @@ function BookingPageContent() {
           transaction_id: `TXN-${Date.now()}-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
           payment_date: new Date().toISOString()
         })
+        .select()
 
       if (paymentError) {
         console.error('Payment creation error:', paymentError)
+        console.error('Payment error details:', JSON.stringify(paymentError, null, 2))
         // Don't throw - payment can be created later
+      } else {
+        console.log('Payment created successfully:', paymentData)
       }
 
       // Send booking confirmation email (async, don't block user)

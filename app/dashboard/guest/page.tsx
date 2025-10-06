@@ -14,8 +14,23 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { CalendarIcon, MapPinIcon, UsersIcon, CreditCardIcon, CheckCircle2Icon, ClockIcon, XCircleIcon } from 'lucide-react'
+import { CalendarIcon, MapPinIcon, UsersIcon, CreditCardIcon, CheckCircle2Icon, ClockIcon, XCircleIcon, Download, Star, Edit2 } from 'lucide-react'
 import { format } from 'date-fns'
+
+interface Payment {
+  id: string
+  booking_id: string
+  amount: number
+  status: string
+  payment_method: string
+  transaction_id: string
+  payment_date: string
+  booking: {
+    hotel: {
+      name: string
+    }
+  }
+}
 
 interface Booking {
   id: string
@@ -24,6 +39,7 @@ interface Booking {
   total_price: number
   status: string
   created_at: string
+  hotel_id: string
   hotel: {
     name: string
     location: string
@@ -54,13 +70,29 @@ interface Profile {
   role: string
 }
 
+interface Review {
+  id: string
+  booking_id: string
+  rating: number
+  title: string
+  comment: string
+  created_at: string
+}
+
 function GuestDashboardContent() {
   const [bookings, setBookings] = useState<Booking[]>([])
+  const [payments, setPayments] = useState<Payment[]>([])
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [cancellingBooking, setCancellingBooking] = useState<string | null>(null)
   const [user, setUser] = useState<User | null>(null)
+  const [editingProfile, setEditingProfile] = useState(false)
+  const [profileForm, setProfileForm] = useState({ full_name: '', phone: '' })
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false)
+  const [selectedBookingForReview, setSelectedBookingForReview] = useState<Booking | null>(null)
+  const [reviewForm, setReviewForm] = useState({ rating: 5, title: '', comment: '' })
+  const [existingReviews, setExistingReviews] = useState<Map<string, Review>>(new Map())
 
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -104,6 +136,10 @@ function GuestDashboardContent() {
       }
 
       setProfile(profileData)
+      setProfileForm({
+        full_name: profileData.full_name || '',
+        phone: profileData.phone || ''
+      })
 
       // Load user bookings
       const { data: bookingsData, error: bookingsError } = await supabase
@@ -146,6 +182,40 @@ function GuestDashboardContent() {
         setBookings(bookingsWithHotels)
       } else {
         setBookings([])
+      }
+
+      // Load payment history
+      const { data: paymentsData, error: paymentsError } = await supabase
+        .from('payments')
+        .select(`
+          *,
+          booking:bookings(
+            hotel:hotels(name)
+          )
+        `)
+        .in('booking_id', bookingsData?.map(b => b.id) || [])
+        .order('payment_date', { ascending: false })
+
+      if (!paymentsError && paymentsData) {
+        setPayments(paymentsData.map((p: any) => ({
+          ...p,
+          booking: {
+            hotel: {
+              name: p.booking?.hotel?.name || 'Unknown Hotel'
+            }
+          }
+        })))
+      }
+
+      // Load existing reviews
+      const { data: reviewsData } = await supabase
+        .from('reviews')
+        .select('*')
+        .eq('guest_id', userId)
+
+      if (reviewsData) {
+        const reviewsMap = new Map(reviewsData.map(r => [r.booking_id, r]))
+        setExistingReviews(reviewsMap)
       }
     } catch (err) {
       console.error('Loading error:', err)
@@ -191,6 +261,118 @@ function GuestDashboardContent() {
     } finally {
       setCancellingBooking(null)
     }
+  }
+
+  const handleUpdateProfile = async () => {
+    if (!user) return
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: profileForm.full_name,
+          phone: profileForm.phone
+        })
+        .eq('id', user.id)
+
+      if (error) throw error
+
+      await loadUserData(user.id)
+      setEditingProfile(false)
+    } catch (err) {
+      console.error('Profile update error:', err)
+      setError('Failed to update profile')
+    }
+  }
+
+  const handleSubmitReview = async () => {
+    if (!selectedBookingForReview || !user) return
+
+    try {
+      const reviewData = {
+        booking_id: selectedBookingForReview.id,
+        guest_id: user.id,
+        hotel_id: selectedBookingForReview.hotel_id,
+        rating: reviewForm.rating,
+        title: reviewForm.title,
+        comment: reviewForm.comment
+      }
+
+      const existingReview = existingReviews.get(selectedBookingForReview.id)
+
+      if (existingReview) {
+        // Update existing review
+        const { error } = await supabase
+          .from('reviews')
+          .update(reviewData)
+          .eq('id', existingReview.id)
+
+        if (error) throw error
+      } else {
+        // Create new review
+        const { error } = await supabase
+          .from('reviews')
+          .insert([reviewData])
+
+        if (error) throw error
+      }
+
+      // Refresh data
+      if (user) {
+        await loadUserData(user.id)
+      }
+
+      setReviewDialogOpen(false)
+      setSelectedBookingForReview(null)
+      setReviewForm({ rating: 5, title: '', comment: '' })
+    } catch (err) {
+      console.error('Review submission error:', err)
+      setError('Failed to submit review')
+    }
+  }
+
+  const openReviewDialog = (booking: Booking) => {
+    setSelectedBookingForReview(booking)
+    const existingReview = existingReviews.get(booking.id)
+    if (existingReview) {
+      setReviewForm({
+        rating: existingReview.rating,
+        title: existingReview.title,
+        comment: existingReview.comment
+      })
+    } else {
+      setReviewForm({ rating: 5, title: '', comment: '' })
+    }
+    setReviewDialogOpen(true)
+  }
+
+  const downloadReceipt = (payment: Payment) => {
+    const receiptContent = `
+MURAKA HOTELS - PAYMENT RECEIPT
+================================
+
+Payment ID: ${payment.id}
+Transaction ID: ${payment.transaction_id}
+Date: ${new Date(payment.payment_date).toLocaleDateString()}
+
+Hotel: ${payment.booking.hotel.name}
+Amount: $${payment.amount.toLocaleString()}
+Payment Method: ${payment.payment_method.replace('_', ' ')}
+Status: ${payment.status}
+
+Thank you for your business!
+================================
+    `.trim()
+
+    const blob = new Blob([receiptContent], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `receipt-${payment.id}.txt`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
   }
 
   const getStatusBadge = (status: string) => {
@@ -345,6 +527,7 @@ function GuestDashboardContent() {
             <TabsTrigger value="past">
               Past Bookings ({pastBookings.length})
             </TabsTrigger>
+            <TabsTrigger value="payments">Payment History</TabsTrigger>
             <TabsTrigger value="profile">Profile</TabsTrigger>
           </TabsList>
 
@@ -493,40 +676,134 @@ function GuestDashboardContent() {
                         <TableHead>Room</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Total</TableHead>
+                        <TableHead className="text-right">Review</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {pastBookings.map((booking) => (
-                        <TableRow key={booking.id}>
-                          <TableCell>
-                            <div>
-                              <p className="font-medium">{booking.hotel.name}</p>
-                              <p className="text-sm text-gray-500">{booking.hotel.location}</p>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm">
-                              <p>{format(new Date(booking.check_in), 'MMM dd')}</p>
-                              <p className="text-gray-500">
-                                to {format(new Date(booking.check_out), 'MMM dd, yyyy')}
-                              </p>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {booking.booking_rooms[0] ? (
-                              <div className="text-sm">
-                                <p>{booking.booking_rooms[0].room.room_type.name}</p>
-                                <p className="text-gray-500">Room {booking.booking_rooms[0].room.room_number}</p>
+                      {pastBookings.map((booking) => {
+                        const hasReview = existingReviews.has(booking.id)
+                        const canReview = booking.status === 'checked_out'
+
+                        return (
+                          <TableRow key={booking.id}>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium">{booking.hotel.name}</p>
+                                <p className="text-sm text-gray-500">{booking.hotel.location}</p>
                               </div>
-                            ) : (
-                              'N/A'
-                            )}
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm">
+                                <p>{format(new Date(booking.check_in), 'MMM dd')}</p>
+                                <p className="text-gray-500">
+                                  to {format(new Date(booking.check_out), 'MMM dd, yyyy')}
+                                </p>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {booking.booking_rooms[0] ? (
+                                <div className="text-sm">
+                                  <p>{booking.booking_rooms[0].room.room_type.name}</p>
+                                  <p className="text-gray-500">Room {booking.booking_rooms[0].room.room_number}</p>
+                                </div>
+                              ) : (
+                                'N/A'
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {getStatusBadge(booking.status)}
+                            </TableCell>
+                            <TableCell className="text-right font-medium">
+                              ${booking.total_price.toLocaleString()}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {canReview && (
+                                <Button
+                                  size="sm"
+                                  variant={hasReview ? "outline" : "default"}
+                                  onClick={() => openReviewDialog(booking)}
+                                >
+                                  <Star className="w-3 h-3 mr-1" />
+                                  {hasReview ? 'Edit Review' : 'Write Review'}
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="payments">
+            <Card>
+              <CardHeader>
+                <CardTitle>Payment History</CardTitle>
+                <CardDescription>
+                  View and download receipts for all your payments
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {payments.length === 0 ? (
+                  <div className="text-center py-16">
+                    <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <CreditCardIcon className="w-12 h-12 text-gray-400" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">No Payment History</h3>
+                    <p className="text-gray-500">Your payment records will appear here</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Hotel</TableHead>
+                        <TableHead>Transaction ID</TableHead>
+                        <TableHead>Method</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                        <TableHead className="text-right">Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {payments.map((payment) => (
+                        <TableRow key={payment.id}>
+                          <TableCell className="font-medium">
+                            {format(new Date(payment.payment_date), 'MMM dd, yyyy')}
+                          </TableCell>
+                          <TableCell>{payment.booking.hotel.name}</TableCell>
+                          <TableCell className="font-mono text-sm">{payment.transaction_id}</TableCell>
+                          <TableCell className="capitalize">
+                            {payment.payment_method.replace('_', ' ')}
                           </TableCell>
                           <TableCell>
-                            {getStatusBadge(booking.status)}
+                            <Badge
+                              className={
+                                payment.status === 'completed'
+                                  ? 'bg-green-100 text-green-700 border-0'
+                                  : payment.status === 'pending'
+                                  ? 'bg-yellow-100 text-yellow-700 border-0'
+                                  : 'bg-red-100 text-red-700 border-0'
+                              }
+                            >
+                              {payment.status}
+                            </Badge>
                           </TableCell>
-                          <TableCell className="text-right font-medium">
-                            ${booking.total_price.toLocaleString()}
+                          <TableCell className="text-right font-semibold">
+                            ${payment.amount.toLocaleString()}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => downloadReceipt(payment)}
+                            >
+                              <Download className="w-3 h-3 mr-1" />
+                              Receipt
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -540,38 +817,95 @@ function GuestDashboardContent() {
           <TabsContent value="profile">
             <Card>
               <CardHeader>
-                <CardTitle>Profile Information</CardTitle>
-                <CardDescription>
-                  Your account details and preferences
-                </CardDescription>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle>Profile Information</CardTitle>
+                    <CardDescription>
+                      Your account details and preferences
+                    </CardDescription>
+                  </div>
+                  {!editingProfile && (
+                    <Button variant="outline" onClick={() => setEditingProfile(true)}>
+                      <Edit2 className="w-4 h-4 mr-2" />
+                      Edit Profile
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 {profile && (
                   <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-sm font-medium text-gray-500">Full Name</label>
-                        <p className="text-lg">{profile.full_name}</p>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-500">Email</label>
-                        <p className="text-lg">{user?.email}</p>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-500">Phone</label>
-                        <p className="text-lg">{profile.phone || 'Not provided'}</p>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-500">Account Type</label>
-                        <Badge className="mt-1">{profile.role}</Badge>
-                      </div>
-                    </div>
+                    {editingProfile ? (
+                      <>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700">Full Name</label>
+                            <input
+                              type="text"
+                              value={profileForm.full_name}
+                              onChange={(e) => setProfileForm({ ...profileForm, full_name: e.target.value })}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700">Email</label>
+                            <p className="text-lg text-gray-500">{user?.email}</p>
+                            <p className="text-xs text-gray-400">Email cannot be changed</p>
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700">Phone</label>
+                            <input
+                              type="tel"
+                              value={profileForm.phone}
+                              onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="+123 456 7890"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-gray-500">Account Type</label>
+                            <Badge className="mt-2">{profile.role}</Badge>
+                          </div>
+                        </div>
 
-                    <div className="pt-4">
-                      <Button variant="outline">
-                        Edit Profile
-                      </Button>
-                    </div>
+                        <div className="pt-4 flex gap-2">
+                          <Button onClick={handleUpdateProfile} className="bg-blue-600 hover:bg-blue-700">
+                            Save Changes
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setEditingProfile(false)
+                              setProfileForm({
+                                full_name: profile.full_name || '',
+                                phone: profile.phone || ''
+                              })
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm font-medium text-gray-500">Full Name</label>
+                          <p className="text-lg">{profile.full_name}</p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-500">Email</label>
+                          <p className="text-lg">{user?.email}</p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-500">Phone</label>
+                          <p className="text-lg">{profile.phone || 'Not provided'}</p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-500">Account Type</label>
+                          <Badge className="mt-1">{profile.role}</Badge>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>
@@ -579,6 +913,78 @@ function GuestDashboardContent() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Review Dialog */}
+      <Dialog open={reviewDialogOpen} onOpenChange={setReviewDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>
+              {existingReviews.has(selectedBookingForReview?.id || '') ? 'Edit Your Review' : 'Write a Review'}
+            </DialogTitle>
+            <DialogDescription>
+              Share your experience at {selectedBookingForReview?.hotel.name}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Star Rating */}
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">Rating</label>
+              <div className="flex gap-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setReviewForm({ ...reviewForm, rating: star })}
+                    className="focus:outline-none"
+                  >
+                    <Star
+                      className={`w-8 h-8 ${
+                        star <= reviewForm.rating
+                          ? 'fill-yellow-400 text-yellow-400'
+                          : 'text-gray-300'
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Title */}
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">Title (Optional)</label>
+              <input
+                type="text"
+                value={reviewForm.title}
+                onChange={(e) => setReviewForm({ ...reviewForm, title: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Summarize your experience"
+              />
+            </div>
+
+            {/* Comment */}
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">Your Review</label>
+              <textarea
+                value={reviewForm.comment}
+                onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                rows={4}
+                placeholder="Tell us about your stay..."
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReviewDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSubmitReview} className="bg-blue-600 hover:bg-blue-700">
+              {existingReviews.has(selectedBookingForReview?.id || '') ? 'Update Review' : 'Submit Review'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

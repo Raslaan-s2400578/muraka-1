@@ -129,7 +129,7 @@ export default function ManagerDashboard() {
           *,
           hotel:hotels(name, location)
         `)
-        .order('hotel.location')
+        .order('name', { ascending: true })
 
       if (roomTypesError) {
         throw roomTypesError

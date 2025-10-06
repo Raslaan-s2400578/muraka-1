@@ -21,6 +21,9 @@ interface Hotel {
   location: string
   address: string
   created_at: string
+  room_count?: number
+  occupancy_rate?: number
+  monthly_revenue?: number
 }
 
 interface Profile {
@@ -91,17 +94,54 @@ export default function HotelsPage() {
 
       if (hotelsError) {
         console.error('Hotels error:', hotelsError)
-      } else {
-        setHotels(hotelsData || [])
+        setHotels([])
+        return
       }
+
+      // Fetch real metrics for each hotel
+      const hotelsWithMetrics = await Promise.all(
+        (hotelsData || []).map(async (hotel) => {
+          // Get room count
+          const { data: rooms } = await supabase
+            .from('rooms')
+            .select('id, status')
+            .eq('hotel_id', hotel.id)
+
+          const roomCount = rooms?.length || 0
+          const occupiedRooms = rooms?.filter(r => r.status === 'Occupied').length || 0
+          const occupancyRate = roomCount > 0 ? Math.round((occupiedRooms / roomCount) * 100) : 0
+
+          // Get monthly revenue from bookings
+          const thirtyDaysAgo = new Date()
+          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+          const { data: bookings } = await supabase
+            .from('bookings')
+            .select('total_price')
+            .eq('hotel_id', hotel.id)
+            .gte('created_at', thirtyDaysAgo.toISOString())
+            .in('status', ['confirmed', 'checked_in', 'checked_out'])
+
+          const monthlyRevenue = bookings?.reduce((sum, b) => sum + b.total_price, 0) || 0
+
+          return {
+            ...hotel,
+            room_count: roomCount,
+            occupancy_rate: occupancyRate,
+            monthly_revenue: monthlyRevenue
+          }
+        })
+      )
+
+      setHotels(hotelsWithMetrics)
     } catch (err) {
       console.error('Loading error:', err);
-if (err instanceof Error) {
-  console.error('Error message:', err.message);
-  console.error('Stack trace:', err.stack);
-} else {
-  console.error('Error details:', JSON.stringify(err, null, 2));
-}
+      if (err instanceof Error) {
+        console.error('Error message:', err.message);
+        console.error('Stack trace:', err.stack);
+      } else {
+        console.error('Error details:', JSON.stringify(err, null, 2));
+      }
     } finally {
       setLoading(false)
     }
@@ -362,21 +402,23 @@ if (err instanceof Error) {
                           <Bed className="w-3 h-3" />
                           <span className="text-xs">Rooms</span>
                         </div>
-                        <p className="text-lg font-bold text-gray-900">24</p>
+                        <p className="text-lg font-bold text-gray-900">{hotel.room_count || 0}</p>
                       </div>
                       <div>
                         <div className="flex items-center gap-1 text-gray-500 mb-1">
                           <TrendingUp className="w-3 h-3" />
                           <span className="text-xs">Occupancy</span>
                         </div>
-                        <p className="text-lg font-bold text-gray-900">78%</p>
+                        <p className="text-lg font-bold text-gray-900">{hotel.occupancy_rate || 0}%</p>
                       </div>
                       <div>
                         <div className="flex items-center gap-1 text-gray-500 mb-1">
                           <DollarSign className="w-3 h-3" />
                           <span className="text-xs">Revenue</span>
                         </div>
-                        <p className="text-lg font-bold text-gray-900">$45K</p>
+                        <p className="text-lg font-bold text-gray-900">
+                          ${hotel.monthly_revenue ? (hotel.monthly_revenue / 1000).toFixed(1) : 0}K
+                        </p>
                       </div>
                     </div>
 

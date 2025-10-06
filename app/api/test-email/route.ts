@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { sendWelcomeEmail, sendBookingConfirmation } from '@/lib/email/send'
 
+// Configure Edge Runtime for Cloudflare Pages
+export const runtime = 'edge'
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const type = searchParams.get('type') || 'welcome'

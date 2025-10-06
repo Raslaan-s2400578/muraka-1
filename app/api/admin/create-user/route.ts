@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
+// Configure Edge Runtime for Cloudflare Pages
+export const runtime = 'edge'
+
 export async function POST(request: Request) {
   try {
     // Check if service role key is configured

@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { CalendarIcon, MapPinIcon, UsersIcon, CreditCardIcon, CheckCircle2Icon, ClockIcon, XCircleIcon, Download, Star, Edit2 } from 'lucide-react'
 import { format } from 'date-fns'
@@ -628,7 +628,9 @@ Thank you for your business!
                                     </DialogDescription>
                                   </DialogHeader>
                                   <DialogFooter>
-                                    <Button variant="outline">Keep Booking</Button>
+                                    <DialogClose asChild>
+                                      <Button variant="outline">Keep Booking</Button>
+                                    </DialogClose>
                                     <Button
                                       variant="destructive"
                                       onClick={() => handleCancelBooking(booking.id)}

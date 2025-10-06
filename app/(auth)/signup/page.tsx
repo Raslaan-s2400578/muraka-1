@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { ArrowLeft } from 'lucide-react'
 
 export default function SignupPage() {
   const [email, setEmail] = useState('')
@@ -136,11 +137,23 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
+        <div className="flex items-center justify-between">
+          <Button
+            variant="ghost"
+            onClick={() => router.push('/')}
+            className="text-white hover:text-gold-400 hover:bg-white/10"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Home
+          </Button>
+        </div>
+
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900">Muraka Hotels</h1>
-          <p className="mt-2 text-gray-600">Create your account</p>
+          <h1 className="text-4xl font-serif font-bold text-white">MURAKA</h1>
+          <p className="mt-2 text-white/80 tracking-wider">HOTELS</p>
+          <p className="mt-4 text-white/90">Create your account</p>
         </div>
 
         <Card>
@@ -226,7 +239,11 @@ export default function SignupPage() {
                 />
               </div>
 
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button
+                type="submit"
+                className="w-full bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-700 text-white"
+                disabled={loading}
+              >
                 {loading ? 'Creating account...' : 'Sign Up'}
               </Button>
             </form>

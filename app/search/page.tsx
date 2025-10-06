@@ -7,13 +7,13 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { UsersIcon, MapPinIcon, CalendarIcon, FilterIcon } from 'lucide-react'
+import { UsersIcon, MapPinIcon, CalendarIcon, FilterIcon, ArrowLeft, Bed, Wifi, Coffee } from 'lucide-react'
 import { format, differenceInDays } from 'date-fns'
+import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 
 interface RoomTypeWithHotel {
   id: string
@@ -29,15 +29,6 @@ interface RoomTypeWithHotel {
     address: string
   }
   available_rooms: number
-}
-
-interface BookingRoom {
-  room_id: string
-  booking: {
-    check_in: string
-    check_out: string
-    status: string
-  }
 }
 
 function SearchPageContent() {
@@ -68,7 +59,7 @@ function SearchPageContent() {
   }
 
   useEffect(() => {
-    if (!location || !checkIn || !checkOut) {
+    if (!checkIn || !checkOut) {
       setError('Missing search parameters')
       setLoading(false)
       return
@@ -82,11 +73,16 @@ function SearchPageContent() {
       setLoading(true)
       setError('')
 
-      // First get hotels for the location
-      const { data: hotelsData, error: hotelsError } = await supabase
+      // Get all hotels or filter by location if provided
+      let hotelsQuery = supabase
         .from('hotels')
         .select('id, name, location, address')
-        .eq('location', location)
+
+      if (location) {
+        hotelsQuery = hotelsQuery.eq('location', location)
+      }
+
+      const { data: hotelsData, error: hotelsError } = await hotelsQuery
 
       if (hotelsError) {
         throw hotelsError
@@ -100,7 +96,7 @@ function SearchPageContent() {
 
       const hotelIds = hotelsData.map(h => h.id)
 
-      // Then get room types for those hotels
+      // Get room types for those hotels
       let query = supabase
         .from('room_types')
         .select(`
@@ -125,13 +121,10 @@ function SearchPageContent() {
         throw roomTypesError
       }
 
-      // Create hotel map for easy lookup
       const hotelMap = new Map(hotelsData.map(h => [h.id, h]))
 
-      // For each room type, check available rooms
       const roomTypesWithAvailability = await Promise.all(
         (roomTypesData || []).map(async (rt: any) => {
-          // Get rooms that are not occupied and not in conflicting bookings
           const { data: availableRooms, error: roomsError } = await supabase
             .from('rooms')
             .select('id')
@@ -143,7 +136,6 @@ function SearchPageContent() {
             return { ...rt, available_rooms: 0 } as RoomTypeWithHotel
           }
 
-          // Check for booking conflicts
           const { data: conflictingBookings, error: bookingsError } = await supabase
             .from('booking_rooms')
             .select(`
@@ -158,7 +150,6 @@ function SearchPageContent() {
             return { ...rt, available_rooms: availableRooms?.length || 0 } as RoomTypeWithHotel
           }
 
-          // Filter out rooms with overlapping bookings
           const conflictingRoomIds = new Set()
           conflictingBookings?.forEach((booking: any) => {
             if (!booking.booking) return
@@ -167,7 +158,6 @@ function SearchPageContent() {
             const searchCheckIn = new Date(checkIn!)
             const searchCheckOut = new Date(checkOut!)
 
-            // Check for date overlap
             if (
               (searchCheckIn >= bookingCheckIn && searchCheckIn < bookingCheckOut) ||
               (searchCheckOut > bookingCheckIn && searchCheckOut <= bookingCheckOut) ||
@@ -178,8 +168,6 @@ function SearchPageContent() {
           })
 
           const availableCount = (availableRooms?.length || 0) - conflictingRoomIds.size
-
-          // Add hotel information from the map
           const hotel = hotelMap.get(rt.hotel_id)
 
           return {
@@ -190,13 +178,12 @@ function SearchPageContent() {
         })
       )
 
-      // Filter out room types with no available rooms
       const availableRoomTypes = roomTypesWithAvailability.filter(rt => rt.available_rooms > 0)
-
       setRoomTypes(availableRoomTypes)
     } catch (err) {
       console.error('Search error:', err)
       setError('Failed to search rooms')
+      toast.error('Failed to search rooms. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -230,7 +217,7 @@ function SearchPageContent() {
     if (!checkIn || !checkOut) return roomType.price_off_peak
 
     const nights = differenceInDays(new Date(checkOut), new Date(checkIn))
-    const pricePerNight = roomType.price_off_peak // For now, using off-peak pricing
+    const pricePerNight = roomType.price_off_peak
     return pricePerNight * nights
   }
 
@@ -248,10 +235,10 @@ function SearchPageContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p>Searching for available rooms...</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-gold-400 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-white text-lg">Searching for available rooms...</p>
         </div>
       </div>
     )
@@ -259,10 +246,14 @@ function SearchPageContent() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-600 mb-4">{error}</p>
-          <Button onClick={() => router.push('/')}>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900">
+        <div className="text-center text-white">
+          <p className="text-xl mb-6">{error}</p>
+          <Button
+            onClick={() => router.push('/')}
+            className="bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-700"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Home
           </Button>
         </div>
@@ -274,30 +265,34 @@ function SearchPageContent() {
   const nights = checkIn && checkOut ? differenceInDays(new Date(checkOut), new Date(checkIn)) : 1
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+      {/* Luxury Header */}
+      <header className="bg-gradient-to-r from-blue-900 via-blue-800 to-blue-900 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-blue-600">Muraka Hotels</h1>
-            </div>
+          <div className="flex justify-between items-center h-20">
+            <Link href="/" className="flex items-center group">
+              <ArrowLeft className="w-5 h-5 text-white/70 group-hover:text-gold-400 mr-3 transition-colors" />
+              <div>
+                <h1 className="text-3xl font-serif font-bold text-white">MURAKA</h1>
+                <p className="text-xs text-white/70 tracking-[0.2em]">HOTELS</p>
+              </div>
+            </Link>
             <div className="flex items-center space-x-4">
               {isLoggedIn ? (
                 <>
-                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                  <Badge className="bg-gold-500 text-white border-0">
                     Signed In
                   </Badge>
-                  <Button variant="ghost" asChild>
+                  <Button variant="ghost" asChild className="text-white hover:text-gold-400 hover:bg-white/10">
                     <Link href="/dashboard/guest">My Dashboard</Link>
                   </Button>
                 </>
               ) : (
                 <>
-                  <Button variant="ghost" asChild>
+                  <Button variant="ghost" asChild className="text-white hover:text-gold-400 hover:bg-white/10">
                     <Link href="/login">Sign In</Link>
                   </Button>
-                  <Button asChild>
+                  <Button asChild className="bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-700">
                     <Link href="/signup">Sign Up</Link>
                   </Button>
                 </>
@@ -307,68 +302,57 @@ function SearchPageContent() {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Login Reminder for Non-logged Users */}
-        {!isLoggedIn && (
-          <Alert className="mb-6 bg-blue-50 border-blue-200">
-            <AlertDescription className="flex items-center justify-between">
-              <span className="text-blue-900">
-                <strong>Sign in required:</strong> You'll need to sign in or create an account to complete your booking.
-              </span>
-              <div className="flex gap-2">
-                <Button size="sm" variant="outline" asChild>
-                  <Link href="/login">Sign In</Link>
-                </Button>
-                <Button size="sm" asChild>
-                  <Link href="/signup">Sign Up</Link>
-                </Button>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Search Summary Banner */}
+        <div className="mb-8 bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-8 text-white">
+          <h2 className="text-3xl font-serif font-bold mb-4">Available Rooms</h2>
+          <div className="flex flex-wrap items-center gap-6">
+            {location && (
+              <div className="flex items-center gap-2">
+                <MapPinIcon className="w-5 h-5 text-gold-400" />
+                <span className="font-medium">Muraka {location}</span>
               </div>
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Search Summary */}
-        <div className="mb-8">
-          <div className="flex items-center space-x-4 text-sm text-gray-600 mb-4">
-            <div className="flex items-center">
-              <MapPinIcon className="w-4 h-4 mr-1" />
-              Muraka {location}
-            </div>
-            <div className="flex items-center">
-              <CalendarIcon className="w-4 h-4 mr-1" />
+            )}
+            {!location && (
+              <div className="flex items-center gap-2">
+                <MapPinIcon className="w-5 h-5 text-gold-400" />
+                <span className="font-medium">All Locations</span>
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <CalendarIcon className="w-5 h-5 text-gold-400" />
               {checkIn && checkOut && (
-                <>
+                <span>
                   {format(new Date(checkIn), 'MMM dd')} - {format(new Date(checkOut), 'MMM dd, yyyy')}
-                  <span className="ml-1">({nights} night{nights !== 1 ? 's' : ''})</span>
-                </>
+                  <span className="ml-2 text-white/80">({nights} night{nights !== 1 ? 's' : ''})</span>
+                </span>
               )}
             </div>
-            <div className="flex items-center">
-              <UsersIcon className="w-4 h-4 mr-1" />
-              {guests} guest{guests !== 1 ? 's' : ''}
+            <div className="flex items-center gap-2">
+              <UsersIcon className="w-5 h-5 text-gold-400" />
+              <span>{guests} guest{guests !== 1 ? 's' : ''}</span>
             </div>
           </div>
-
-          <h2 className="text-2xl font-bold text-gray-900">
-            {sortedRooms.length} Available Room{sortedRooms.length !== 1 ? 's' : ''}
-          </h2>
+          <div className="mt-4 text-2xl font-bold text-gold-400">
+            {sortedRooms.length} Room{sortedRooms.length !== 1 ? 's' : ''} Found
+          </div>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
-          {/* Filters */}
+          {/* Luxury Sidebar Filters */}
           <div className="lg:w-1/4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <FilterIcon className="w-4 h-4 mr-2" />
+            <Card className="border-0 shadow-xl">
+              <div className="bg-gradient-to-br from-blue-50 to-white p-6 rounded-t-lg">
+                <h3 className="flex items-center text-xl font-serif font-bold text-gray-900">
+                  <FilterIcon className="w-5 h-5 mr-2 text-blue-600" />
                   Filters
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+                </h3>
+              </div>
+              <CardContent className="p-6 space-y-6">
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Sort by</label>
+                  <label className="text-sm font-semibold text-gray-700 mb-3 block">Sort By</label>
                   <Select value={sortBy} onValueChange={setSortBy}>
-                    <SelectTrigger>
+                    <SelectTrigger className="border-gray-300">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -380,9 +364,9 @@ function SearchPageContent() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Minimum Capacity</label>
+                  <label className="text-sm font-semibold text-gray-700 mb-3 block">Minimum Capacity</label>
                   <Select value={filterCapacity} onValueChange={setFilterCapacity}>
-                    <SelectTrigger>
+                    <SelectTrigger className="border-gray-300">
                       <SelectValue placeholder="Any capacity" />
                     </SelectTrigger>
                     <SelectContent>
@@ -393,6 +377,15 @@ function SearchPageContent() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                <Button
+                  variant="outline"
+                  className="w-full mt-4"
+                  onClick={() => router.push('/')}
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  New Search
+                </Button>
               </CardContent>
             </Card>
           </div>
@@ -400,131 +393,101 @@ function SearchPageContent() {
           {/* Results */}
           <div className="lg:w-3/4">
             {sortedRooms.length === 0 ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle>No Rooms Available</CardTitle>
-                  <CardDescription>
-                    No rooms found for your current search. Try adjusting your criteria below:
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Location</label>
-                      <Select value={location || ''} onValueChange={(val) => {
-                        const params = new URLSearchParams(window.location.search)
-                        params.set('location', val)
-                        router.push(`/search?${params.toString()}`)
-                      }}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select location" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Male">Muraka Male</SelectItem>
-                          <SelectItem value="Laamu">Muraka Laamu</SelectItem>
-                          <SelectItem value="Faafu">Muraka Faafu</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Number of Guests</label>
-                      <Select value={guests.toString()} onValueChange={(val) => {
-                        const params = new URLSearchParams(window.location.search)
-                        params.set('guests', val)
-                        router.push(`/search?${params.toString()}`)
-                      }}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="1">1 guest</SelectItem>
-                          <SelectItem value="2">2 guests</SelectItem>
-                          <SelectItem value="3">3 guests</SelectItem>
-                          <SelectItem value="4">4 guests</SelectItem>
-                          <SelectItem value="5">5 guests</SelectItem>
-                          <SelectItem value="6">6+ guests</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+              <Card className="border-0 shadow-xl">
+                <CardContent className="p-12 text-center">
+                  <div className="mb-6">
+                    <Bed className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-2xl font-serif font-bold text-gray-900 mb-2">No Rooms Available</h3>
+                    <p className="text-gray-600">
+                      No rooms found for your current search criteria. Try adjusting your filters or dates.
+                    </p>
                   </div>
-
-                  <div className="flex gap-4 pt-4">
-                    <Button onClick={() => router.push('/')} variant="outline" className="flex-1">
+                  <div className="flex gap-4 justify-center">
+                    <Button
+                      onClick={() => router.push('/')}
+                      variant="outline"
+                    >
                       Start New Search
                     </Button>
-                    <Button onClick={() => window.location.reload()} className="flex-1">
-                      Search Again
+                    <Button
+                      onClick={() => window.location.reload()}
+                      className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+                    >
+                      Refresh Results
                     </Button>
-                  </div>
-
-                  <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                    <p className="text-sm text-blue-900">
-                      <strong>Tip:</strong> Try selecting a different location or reducing the number of guests.
-                      You can also try different dates by starting a new search.
-                    </p>
                   </div>
                 </CardContent>
               </Card>
             ) : (
               <div className="space-y-6">
                 {sortedRooms.map((roomType) => (
-                  <Card key={roomType.id} className="overflow-hidden">
+                  <Card key={roomType.id} className="overflow-hidden border-0 shadow-xl hover:shadow-2xl transition-shadow duration-300 group">
                     <div className="flex flex-col md:flex-row">
-                      {/* Room Image Placeholder */}
-                      <div className="md:w-1/3 h-48 md:h-auto bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center">
-                        <div className="text-center">
-                          <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-2">
-                            <UsersIcon className="w-8 h-8 text-white" />
+                      {/* Room Image with Gradient Overlay */}
+                      <div className="md:w-2/5 h-64 md:h-auto bg-gradient-to-br from-blue-100 to-blue-200 relative overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+                        <div className="absolute bottom-6 left-6 text-white">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Bed className="w-6 h-6" />
+                            <span className="text-lg font-semibold">{roomType.name}</span>
                           </div>
-                          <p className="text-blue-600 font-medium">Up to {roomType.capacity} guests</p>
+                          <Badge className="bg-white/20 backdrop-blur-sm text-white border-0">
+                            {roomType.available_rooms} available
+                          </Badge>
                         </div>
                       </div>
 
                       {/* Room Details */}
-                      <div className="md:w-2/3 p-6">
+                      <div className="md:w-3/5 p-8">
                         <div className="flex justify-between items-start mb-4">
                           <div>
-                            <h3 className="text-xl font-semibold mb-2">{roomType.name}</h3>
-                            <p className="text-blue-600 text-sm mb-2">{roomType.hotel.name}</p>
-                            <p className="text-gray-600 text-sm mb-4">{roomType.description}</p>
+                            <h3 className="text-2xl font-serif font-bold text-gray-900 mb-2">{roomType.name}</h3>
+                            <p className="text-blue-600 font-semibold text-sm mb-3">{roomType.hotel.name}</p>
+                            <p className="text-gray-600 mb-4 leading-relaxed">{roomType.description}</p>
 
-                            <div className="flex items-center space-x-4 text-sm text-gray-500 mb-4">
-                              <div className="flex items-center">
-                                <UsersIcon className="w-4 h-4 mr-1" />
+                            <div className="flex flex-wrap gap-4 mb-4">
+                              <div className="flex items-center text-sm text-gray-600">
+                                <UsersIcon className="w-4 h-4 mr-2 text-blue-600" />
                                 Up to {roomType.capacity} guests
                               </div>
-                              <div className="flex items-center">
-                                <MapPinIcon className="w-4 h-4 mr-1" />
+                              <div className="flex items-center text-sm text-gray-600">
+                                <MapPinIcon className="w-4 h-4 mr-2 text-blue-600" />
                                 {roomType.hotel.location} Atoll
                               </div>
+                              <div className="flex items-center text-sm text-gray-600">
+                                <Wifi className="w-4 h-4 mr-2 text-blue-600" />
+                                Free WiFi
+                              </div>
+                              <div className="flex items-center text-sm text-gray-600">
+                                <Coffee className="w-4 h-4 mr-2 text-blue-600" />
+                                Breakfast Included
+                              </div>
                             </div>
-
-                            <Badge variant="outline">
-                              {roomType.available_rooms} room{roomType.available_rooms !== 1 ? 's' : ''} available
-                            </Badge>
                           </div>
 
-                          <div className="text-right">
-                            <div className="text-2xl font-bold text-blue-600">
-                              ${calculatePrice(roomType).toLocaleString()}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              ${roomType.price_off_peak}/night × {nights} night{nights !== 1 ? 's' : ''}
-                            </div>
-                            <div className="text-xs text-gray-400 mt-1">
-                              Total price
+                          <div className="text-right ml-6">
+                            <div className="bg-gradient-to-br from-blue-50 to-gold-50 p-4 rounded-lg">
+                              <div className="text-3xl font-bold text-blue-900">
+                                ${calculatePrice(roomType).toLocaleString()}
+                              </div>
+                              <div className="text-sm text-gray-600 mt-1">
+                                ${roomType.price_off_peak}/night
+                              </div>
+                              <div className="text-xs text-gray-500 mt-1">
+                                {nights} night{nights !== 1 ? 's' : ''}
+                              </div>
                             </div>
                           </div>
                         </div>
 
-                        <Separator className="my-4" />
-
-                        <div className="flex justify-between items-center">
-                          <div className="text-sm text-gray-600">
-                            Free cancellation until 24 hours before check-in
+                        <div className="border-t pt-4 flex justify-between items-center">
+                          <div className="text-sm text-green-600 font-medium">
+                            ✓ Free cancellation until 24h before check-in
                           </div>
-                          <Button onClick={() => handleBooking(roomType.id)}>
+                          <Button
+                            onClick={() => handleBooking(roomType.id)}
+                            className="bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-700 text-white font-semibold px-8"
+                          >
                             Book Now
                           </Button>
                         </div>
@@ -543,7 +506,11 @@ function SearchPageContent() {
 
 export default function SearchPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    }>
       <SearchPageContent />
     </Suspense>
   )

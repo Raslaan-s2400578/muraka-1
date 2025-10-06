@@ -1105,14 +1105,14 @@ export default function BookingsPage() {
                       setSuccess('')
                     }}
                   >
-                    Cancel
+                    Keep Booking
                   </Button>
                   <Button
                     variant="destructive"
                     onClick={handleDeleteBooking}
                     className="bg-red-600 hover:bg-red-700"
                   >
-                    Delete Booking
+                    Cancel Booking
                   </Button>
                 </DialogFooter>
               </DialogContent>

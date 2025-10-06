@@ -7,6 +7,7 @@ A full-stack hotel booking and management system built with Next.js 15, Supabase
 ## 🚀 Quick Start
 
 ### 1. Clone & Install
+
 ```bash
 git clone https://github.com/Raslaan-s2400578/muraka.git
 cd muraka
@@ -14,7 +15,9 @@ npm install
 ```
 
 ### 2. Environment Setup
+
 Create `.env.local`:
+
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
@@ -22,15 +25,19 @@ SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 ```
 
 ### 3. Database Setup
+
 Run these SQL files in your Supabase SQL Editor (in order):
+
 1. `supabase/migrations/20250101000000_add_reviews.sql`
 2. `supabase/migrations/20250101000001_add_promotions.sql`
 3. `supabase/migrations/20250101000002_fix_payments_policy.sql`
 
 ### 4. Run Development Server
+
 ```bash
 npm run dev
 ```
+
 Visit: http://localhost:3000
 
 ---
@@ -38,6 +45,7 @@ Visit: http://localhost:3000
 ## 👥 Default Login Credentials
 
 ### Admin Portal
+
 ```
 Email: admin@muraka.com
 Password: admin123
@@ -45,6 +53,7 @@ Dashboard: /dashboard/admin
 ```
 
 ### Manager Portal
+
 ```
 Email: manager@muraka.com
 Password: manager123
@@ -52,6 +61,7 @@ Dashboard: /dashboard/manager
 ```
 
 ### Staff Portal
+
 ```
 Email: staff@muraka.com
 Password: staff123
@@ -59,6 +69,7 @@ Dashboard: /dashboard/staff
 ```
 
 ### Guest Portal
+
 ```
 Email: guest@muraka.com
 Password: guest123
@@ -82,6 +93,7 @@ Dashboard: /dashboard/guest
 ## ✨ Features
 
 ### Guest Features
+
 - 🔍 Search & book rooms across 3 locations
 - 💳 Payment history with downloadable receipts
 - ⭐ 5-star review system for completed stays
@@ -90,18 +102,21 @@ Dashboard: /dashboard/guest
 - 📱 Responsive design
 
 ### Staff Features
+
 - 📊 Booking management
 - 👥 Customer management
 - 💰 Payment tracking
 - 🏨 Hotel & room overview
 
 ### Manager Features
+
 - 📈 Analytics dashboard
 - 📉 Occupancy tracking
 - 💵 Revenue reports
 - 🎯 Performance metrics
 
 ### Admin Features
+
 - 👨‍💼 User management (create staff/manager accounts)
 - 🏨 Hotel & room management
 - 💸 Payment management
@@ -134,6 +149,7 @@ muraka/
 ## 🗄️ Database Schema
 
 ### Main Tables
+
 - `profiles` - User profiles with roles (admin/staff/manager/guest)
 - `hotels` - 3 hotel locations in Maldives
 - `room_types` - Different room categories
@@ -149,11 +165,13 @@ muraka/
 ## 🚀 Deployment to Cloudflare Pages
 
 ### Prerequisites
+
 ⚠️ **CRITICAL:** All 3 SQL migrations MUST be run first!
 
 ### Steps
 
 1. **Push to GitHub:**
+
    ```bash
    git add .
    git commit -m "Production deployment"
@@ -167,6 +185,7 @@ muraka/
    - Branch: `feature/roles`
 
 3. **Build Settings:**
+
    ```
    Build command: npm run build
    Build output: .next
@@ -175,6 +194,7 @@ muraka/
 
 4. **Environment Variables:**
    Add these in Cloudflare:
+
    ```
    NEXT_PUBLIC_SUPABASE_URL=...
    NEXT_PUBLIC_SUPABASE_ANON_KEY=...
@@ -213,6 +233,7 @@ muraka/
 ## 📧 Email Notifications
 
 Automated emails for:
+
 - Welcome message on signup
 - Booking confirmation
 - Payment receipts
@@ -223,6 +244,7 @@ Automated emails for:
 ## 🐛 Troubleshooting
 
 ### Build Fails
+
 ```bash
 # Clean build cache
 rm -rf .next
@@ -230,15 +252,18 @@ npm run build
 ```
 
 ### Database Connection Issues
+
 - Verify `.env.local` has correct Supabase credentials
 - Check Supabase project is not paused
 
 ### Login Not Working
+
 - Run database migrations
 - Check RLS policies are enabled
 - Verify user exists in `profiles` table
 
 ### Payment Creation Fails
+
 - **CRITICAL:** Run migration #3 (`fix_payments_policy.sql`)
 - This enables guests to create payment records
 
@@ -258,12 +283,15 @@ npm run lint         # Run ESLint
 ## 🎯 API Routes
 
 ### Public
+
 - `POST /api/auth/*` - Authentication (Supabase)
 
 ### Protected (Admin Only)
+
 - `POST /api/admin/create-user` - Create staff/manager/admin accounts
 
 ### Development
+
 - `GET /api/test-email` - Test email sending
 
 ---
@@ -271,6 +299,7 @@ npm run lint         # Run ESLint
 ## 🔄 Workflow
 
 ### Guest Booking Flow
+
 1. Search rooms → Select dates & location
 2. Choose room type → Review details
 3. Enter guest info → Make payment
@@ -279,6 +308,7 @@ npm run lint         # Run ESLint
 6. After checkout → Leave review
 
 ### Admin User Creation Flow
+
 1. Login as admin
 2. Dashboard → Users → Create User
 3. Enter: email, password, name, NID, role
@@ -290,6 +320,7 @@ npm run lint         # Run ESLint
 ## 📊 Features by Version
 
 ### v1.0 (Current - Production Ready)
+
 - ✅ Multi-role authentication system
 - ✅ Booking & payment management
 - ✅ Review/rating system
@@ -299,6 +330,7 @@ npm run lint         # Run ESLint
 - ✅ Responsive design
 
 ### v1.1 (Planned)
+
 - 🔜 Booking modifications
 - 🔜 Dynamic availability calendar
 - 🔜 Interactive location map
@@ -326,6 +358,7 @@ This project is for educational/portfolio purposes.
 ## 👨‍💻 Developer
 
 **Mohamed Raslaan**
+
 - GitHub: [@Raslaan-s2400578](https://github.com/Raslaan-s2400578)
 - Project: Muraka Hotels Management System
 
@@ -336,17 +369,8 @@ This project is for educational/portfolio purposes.
 - Next.js Team for the amazing framework
 - Supabase for the backend infrastructure
 - shadcn/ui for beautiful components
+- resnend for the fast emails
 - Cloudflare for edge deployment
-
----
-
-## 📞 Support
-
-Need help?
-1. Check the troubleshooting section above
-2. Review database migrations are all run
-3. Verify environment variables are set
-4. Check Supabase project is active
 
 ---
 

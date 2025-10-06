@@ -15,7 +15,7 @@ import {
   CalendarIcon, MapPinIcon, UsersIcon, StarIcon, ChevronLeft, ChevronRight,
   Utensils, Waves, Sparkles, Anchor, Wind, Baby, Dumbbell, Wifi, MapPin,
   Phone, Mail, Instagram, Facebook, Twitter, Youtube, Award, CheckCircle,
-  Camera, X, PlayCircle, PauseCircle, Home, UtensilsCrossed
+  Camera, X, PlayCircle, PauseCircle, HomeIcon, UtensilsCrossed
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'

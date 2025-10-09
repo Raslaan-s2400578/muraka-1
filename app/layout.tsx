@@ -31,6 +31,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="lenis">
+      <head>
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8196212883156501"
+          crossOrigin="anonymous"></script>
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} antialiased font-sans`}
       >

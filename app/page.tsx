@@ -12,6 +12,7 @@ import { Calendar } from '@/components/ui/calendar'
 import { Badge } from '@/components/ui/badge'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { MobileNav } from '@/components/MobileNav'
+import { AdSense } from '@/components/AdSense'
 import {
   CalendarIcon, MapPinIcon, UsersIcon, StarIcon, ChevronLeft, ChevronRight,
   Utensils, Waves, Sparkles, Anchor, Wind, Baby, Dumbbell, Wifi, MapPin,
@@ -658,6 +659,13 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Ad Unit 1 - After Hero */}
+      <section className="py-8 px-4 bg-white">
+        <div className="max-w-7xl mx-auto">
+          <AdSense adSlot="5041787387" />
+        </div>  
+      </section>
+
       {/* Signature Experiences - Responsive */}
       <section id="experiences" className="animate-section py-12 sm:py-16 lg:py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white to-blue-50">
         <div className="max-w-7xl mx-auto">
@@ -759,6 +767,13 @@ export default function Home() {
               </Card>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Ad Unit 2 - After Room Types */}
+      <section className="py-8 px-4 bg-gray-50">
+        <div className="max-w-7xl mx-auto">
+          <AdSense adSlot="4891304647" />
         </div>
       </section>
 
@@ -1079,6 +1094,13 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* Ad Unit 3 - Before Testimonials */}
+      <section className="py-8 px-4 bg-white">
+        <div className="max-w-7xl mx-auto">
+          <AdSense adSlot="7173126709" />
+        </div>
+      </section>
 
       {/* Testimonials - Responsive with Touch Support */}
       <section className="animate-section py-12 sm:py-16 lg:py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-blue-50 to-white">

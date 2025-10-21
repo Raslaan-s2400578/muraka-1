@@ -22,7 +22,7 @@ export function AdSense({
     } catch (err) {
       console.error('AdSense error:', err)
     }
-  }, [])
+  }, []) 
 
   return (
     <ins

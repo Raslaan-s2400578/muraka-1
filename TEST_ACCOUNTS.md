@@ -22,13 +22,16 @@
 ## All 18 Accounts
 
 ### ADMIN (1)
+
 - **admin@muraka.dev** | System Administrator | Password@123
 
 ### MANAGERS (2)
+
 - **manager1@muraka.dev** | Ahmed Hassan | Password@123
 - **manager2@muraka.dev** | Fatima Ahmed | Password@123
 
 ### STAFF (5)
+
 - **staff1@muraka.dev** | Mohammed Hassan | Password@123
 - **staff2@muraka.dev** | Aisha Ahmed | Password@123
 - **staff3@muraka.dev** | Hassan Omar | Password@123
@@ -36,6 +39,7 @@
 - **staff5@muraka.dev** | Omar Khalil | Password@123
 
 ### GUESTS (10)
+
 - **guest1@muraka.dev** | Ali Mohammed | Password@123
 - **guest2@muraka.dev** | Sara Abdullah | Password@123
 - **guest3@muraka.dev** | Noor Hassan | Password@123

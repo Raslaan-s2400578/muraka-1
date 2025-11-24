@@ -55,7 +55,7 @@
 
 ## Testing
 
-After seeding, logcin at: `http://localhost:3000/login`
+After seeding, login at: `http://localhost:3000/login`
 
 ```
 Admin:    admin@muraka.dev / Password@123 → /dashboard/admin

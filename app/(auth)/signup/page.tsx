@@ -98,7 +98,6 @@ export default function SignupPage() {
           .insert({
             id: data.user.id,
             full_name: fullName,
-            email: email,
             phone: phone || null,
             role: 'guest',
           })

@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { UserPlus, Trash2, Shield, UserCog, Users as UsersIcon } from 'lucide-react'
+import { UserPlus, Trash2, Shield, UserCog, Users as UsersIcon, Edit2 } from 'lucide-react'
 
 interface Profile {
   id: string
@@ -40,8 +40,10 @@ export default function UsersPage() {
   const [activeView] = useState('users')
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<Profile | null>(null)
   const [creating, setCreating] = useState(false)
+  const [updating, setUpdating] = useState(false)
   const [error, setError] = useState('')
 
   const [formData, setFormData] = useState({
@@ -49,6 +51,11 @@ export default function UsersPage() {
     email: '',
     nid: '',
     password: '',
+    role: 'staff'
+  })
+
+  const [editFormData, setEditFormData] = useState({
+    full_name: '',
     role: 'staff'
   })
 
@@ -151,6 +158,45 @@ export default function UsersPage() {
       setError(err.message || 'Failed to create user')
     } finally {
       setCreating(false)
+    }
+  }
+
+  const handleEditUser = async () => {
+    if (!selectedUser) return
+    if (!editFormData.full_name || !editFormData.role) {
+      setError('Please fill in all required fields')
+      return
+    }
+
+    setUpdating(true)
+    setError('')
+
+    try {
+      const response = await fetch('/api/admin/update-user', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: selectedUser.id,
+          full_name: editFormData.full_name,
+          role: editFormData.role
+        })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update user')
+      }
+
+      await loadUsers()
+      setEditDialogOpen(false)
+      setSelectedUser(null)
+      setEditFormData({ full_name: '', role: 'staff' })
+    } catch (err: any) {
+      console.error('Update user error:', err)
+      setError(err.message || 'Failed to update user')
+    } finally {
+      setUpdating(false)
     }
   }
 
@@ -314,16 +360,31 @@ export default function UsersPage() {
                           {new Date(user.created_at).toLocaleDateString()}
                         </TableCell>
                         <TableCell>
-                          <button
-                            onClick={() => {
-                              setSelectedUser(user)
-                              setDeleteDialogOpen(true)
-                            }}
-                            className="p-1 text-gray-600 hover:text-red-600"
-                            disabled={user.id === profile?.id}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                setSelectedUser(user)
+                                setEditFormData({
+                                  full_name: user.full_name,
+                                  role: user.role
+                                })
+                                setEditDialogOpen(true)
+                              }}
+                              className="p-1 text-gray-600 hover:text-blue-600"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedUser(user)
+                                setDeleteDialogOpen(true)
+                              }}
+                              className="p-1 text-gray-600 hover:text-red-600"
+                              disabled={user.id === profile?.id}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
@@ -406,6 +467,53 @@ export default function UsersPage() {
             </Button>
             <Button onClick={handleCreateUser} className="bg-purple-600 hover:bg-purple-700" disabled={creating}>
               {creating ? 'Creating...' : 'Create User'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit User Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+            <DialogDescription>Update user information</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                {error}
+              </div>
+            )}
+            <div>
+              <Label htmlFor="edit_full_name">Full Name *</Label>
+              <Input
+                id="edit_full_name"
+                value={editFormData.full_name}
+                onChange={(e) => setEditFormData({ ...editFormData, full_name: e.target.value })}
+                placeholder="John Doe"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit_role">Role *</Label>
+              <Select value={editFormData.role} onValueChange={(value) => setEditFormData({ ...editFormData, role: value })}>
+                <SelectTrigger id="edit_role">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="staff">Staff</SelectItem>
+                  <SelectItem value="manager">Manager</SelectItem>
+                  <SelectItem value="admin">Administrator</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)} disabled={updating}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditUser} className="bg-blue-600 hover:bg-blue-700" disabled={updating}>
+              {updating ? 'Updating...' : 'Update User'}
             </Button>
           </DialogFooter>
         </DialogContent>

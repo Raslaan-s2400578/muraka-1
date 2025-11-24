@@ -68,7 +68,7 @@ Guest:    guest1@muraka.dev / Password@123 → /dashboard/guest
 
 ## Files Used
 
-- **supabase/seed-test-accounts.sql** - SQL seeder (run this!)
+- **supabase/seed-test-accounts.sql** - SQL see der (run this!)
 - **TEST_ACCOUNTS_READY.md** - This file
 
 That's it! Simple and clean. 🚀

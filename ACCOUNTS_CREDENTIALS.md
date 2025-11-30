@@ -6,47 +6,47 @@
 
 ## ADMIN (1)
 
-| Email | Name | Password |
-|-------|------|----------|
+| Email            | Name                 | Password    |
+| ---------------- | -------------------- | ----------- |
 | admin@muraka.dev | System Administrator | Welcome@123 |
 
 ---
 
 ## MANAGERS (2)
 
-| Email | Name | Password |
-|-------|------|----------|
-| ahmed.manager@muraka.dev | Ahmed Hassan | Welcome@123 |
+| Email                     | Name         | Password    |
+| ------------------------- | ------------ | ----------- |
+| ahmed.manager@muraka.dev  | Ahmed Hassan | Welcome@123 |
 | fatima.manager@muraka.dev | Fatima Ahmed | Welcome@123 |
 
 ---
 
 ## STAFF (5)
 
-| Email | Name | Password |
-|-------|------|----------|
+| Email                     | Name            | Password    |
+| ------------------------- | --------------- | ----------- |
 | mohammed.staff@muraka.dev | Mohammed Hassan | Welcome@123 |
-| aisha.staff@muraka.dev | Aisha Ahmed | Welcome@123 |
-| hassan.staff@muraka.dev | Hassan Omar | Welcome@123 |
-| layla.staff@muraka.dev | Layla Ibrahim | Welcome@123 |
-| omar.staff@muraka.dev | Omar Khalil | Welcome@123 |
+| aisha.staff@muraka.dev    | Aisha Ahmed     | Welcome@123 |
+| hassan.staff@muraka.dev   | Hassan Omar     | Welcome@123 |
+| layla.staff@muraka.dev    | Layla Ibrahim   | Welcome@123 |
+| omar.staff@muraka.dev     | Omar Khalil     | Welcome@123 |
 
 ---
 
 ## GUESTS (10)
 
-| Email | Name | Password |
-|-------|------|----------|
-| ali@muraka.dev | Ali Mohammed | Welcome@123 |
-| sara@muraka.dev | Sara Abdullah | Welcome@123 |
-| noor@muraka.dev | Noor Hassan | Welcome@123 |
-| zainab@muraka.dev | Zainab Ahmed | Welcome@123 |
-| karim@muraka.dev | Karim Ibrahim | Welcome@123 |
-| dina@muraka.dev | Dina Saleh | Welcome@123 |
-| rashid@muraka.dev | Rashid Ahmed | Welcome@123 |
-| hana@muraka.dev | Hana Ibrahim | Welcome@123 |
-| tariq@muraka.dev | Tariq Hassan | Welcome@123 |
-| leila@muraka.dev | Leila Ahmed | Welcome@123 |
+| Email             | Name          | Password    |
+| ----------------- | ------------- | ----------- |
+| ali@muraka.dev    | Ali Mohammed  | Welcome@123 |
+| sara@muraka.dev   | Sara Abdullah | Welcome@123 |
+| noor@muraka.dev   | Noor Hassan   | Welcome@123 |
+| zainab@muraka.dev | Zainab Ahmed  | Welcome@123 |
+| karim@muraka.dev  | Karim Ibrahim | Welcome@123 |
+| dina@muraka.dev   | Dina Saleh    | Welcome@123 |
+| rashid@muraka.dev | Rashid Ahmed  | Welcome@123 |
+| hana@muraka.dev   | Hana Ibrahim  | Welcome@123 |
+| tariq@muraka.dev  | Tariq Hassan  | Welcome@123 |
+| leila@muraka.dev  | Leila Ahmed   | Welcome@123 |
 
 ---
 

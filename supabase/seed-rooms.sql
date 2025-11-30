@@ -148,7 +148,7 @@ CROSS JOIN room_types rt
 WHERE h.location = 'Laamu' AND rt.name = 'Deluxe King'
 ON CONFLICT DO NOTHING;
 
--- L-136 to L-145: Family Suite
+
 INSERT INTO rooms (hotel_id, room_type_id, room_number, status)
 WITH room_data AS (
   SELECT generate_series(136, 145) as num

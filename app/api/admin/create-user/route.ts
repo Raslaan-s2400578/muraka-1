@@ -27,12 +27,12 @@ export async function POST(request: Request) {
       }
     )
 
-    const { email, password, full_name, nid, role } = await request.json()
+    const { email, password, full_name, role } = await request.json()
 
-    console.log('Creating user with:', { email, full_name, nid, role })
+    console.log('Creating user with:', { email, full_name, role })
 
     // Validate required fields
-    if (!email || !password || !full_name || !nid || !role) {
+    if (!email || !password || !full_name || !role) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -48,23 +48,9 @@ export async function POST(request: Request) {
     }
 
     // Validate role
-    if (!['staff', 'manager', 'admin'].includes(role)) {
+    if (!['guest', 'staff', 'manager', 'admin'].includes(role)) {
       return NextResponse.json(
         { error: 'Invalid role' },
-        { status: 400 }
-      )
-    }
-
-    // Check if NID already exists
-    const { data: existingProfile } = await supabaseAdmin
-      .from('profiles')
-      .select('id')
-      .eq('nid', nid)
-      .single()
-
-    if (existingProfile) {
-      return NextResponse.json(
-        { error: 'A user with this NID already exists' },
         { status: 400 }
       )
     }
@@ -77,7 +63,6 @@ export async function POST(request: Request) {
       email_confirm: true, // Auto-confirm email
       user_metadata: {
         full_name,
-        nid,
         role
       }
     })
@@ -92,34 +77,9 @@ export async function POST(request: Request) {
 
     console.log('Auth user created successfully:', authData.user.id)
 
-    // Wait a moment for the trigger to create the profile
+    // Profile is auto-created by trigger with role from metadata
+    // Wait a moment for the trigger to execute
     await new Promise(resolve => setTimeout(resolve, 100))
-
-    // Update the profile with NID and role (profile is auto-created by trigger)
-    console.log('Updating profile with NID and role...')
-    const { error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .update({
-        nid,
-        role
-      })
-      .eq('id', authData.user.id)
-
-    if (profileError) {
-      console.error('Profile update error:', profileError)
-      console.error('Profile error details:', JSON.stringify(profileError, null, 2))
-
-      // Rollback: delete auth user if profile update fails
-      console.log('Rolling back auth user...')
-      await supabaseAdmin.auth.admin.deleteUser(authData.user.id)
-
-      return NextResponse.json(
-        { error: `Failed to update user profile: ${profileError.message}` },
-        { status: 500 }
-      )
-    }
-
-    console.log('Profile updated successfully')
 
     return NextResponse.json({
       success: true,
@@ -127,7 +87,6 @@ export async function POST(request: Request) {
         id: authData.user.id,
         email,
         full_name,
-        nid,
         role
       }
     })

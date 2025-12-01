@@ -29,11 +29,23 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  let user = null
+  try {
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser()
+    user = authUser
+  } catch (error) {
+    console.error('Auth error:', error)
+    // Continue without user if auth fails
+  }
 
   const { pathname } = request.nextUrl
+
+  // Skip middleware for API routes
+  if (pathname.startsWith('/api/')) {
+    return supabaseResponse
+  }
 
   // Public routes that don't require authentication
   const publicRoutes = ['/', '/login', '/signup', '/search']
@@ -51,14 +63,25 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
+  // Skip profile queries for auth routes
+  if (isAuthRoute) {
+    return supabaseResponse
+  }
+
   // Role-based access control for dashboard routes
   if (pathname.startsWith('/dashboard') && user) {
     try {
-      const { data: profile } = await supabase
+      const { data: profile, error } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', user.id)
         .single()
+
+      if (error) {
+        console.error('Profile query error:', error)
+        // If there's an error fetching the profile, redirect to guest dashboard
+        return NextResponse.redirect(new URL('/dashboard/guest', request.url))
+      }
 
       const userRole = profile?.role || 'guest'
 
@@ -81,6 +104,7 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL(defaultRoute, request.url))
       }
     } catch (error) {
+      console.error('Middleware error:', error)
       // If there's an error fetching the profile, redirect to guest dashboard
       return NextResponse.redirect(new URL('/dashboard/guest', request.url))
     }
@@ -93,4 +117,5 @@ export const config = {
   matcher: [
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
+  // Exclude auth routes from full middleware processing
 }

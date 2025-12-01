@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -24,6 +24,14 @@ export default function SignupPage() {
   const [message, setMessage] = useState('')
   const router = useRouter()
   const supabase = createClient()
+  const errorRef = useRef<HTMLDivElement>(null)
+
+  // Scroll to top when error changes
+  useEffect(() => {
+    if (error && errorRef.current) {
+      errorRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [error])
 
   const validatePassword = (password: string) => {
     const minLength = 8
@@ -48,6 +56,14 @@ export default function SignupPage() {
       return 'Password must contain at least one special character'
     }
     return null
+  }
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    // Only allow numbers
+    if (value === '' || /^\d+$/.test(value)) {
+      setPhone(value)
+    }
   }
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -116,7 +132,8 @@ export default function SignupPage() {
         // Send welcome email (async, don't block the flow)
         sendWelcomeEmailAsync(email, fullName)
 
-        setMessage('Account created successfully! Check your email for the confirmation link!')
+        // Redirect to login page with success message
+        router.push('/login?message=Account created successfully! Please check your email to verify your account.')
       }
     } catch (err) {
       console.error('Unexpected error:', err)
@@ -167,7 +184,7 @@ export default function SignupPage() {
           <CardContent>
             <form onSubmit={handleSignup} className="space-y-4">
               {error && (
-                <Alert variant="destructive">
+                <Alert variant="destructive" ref={errorRef}>
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
@@ -208,8 +225,9 @@ export default function SignupPage() {
                   id="phone"
                   type="tel"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={handlePhoneChange}
                   placeholder="Enter your phone number"
+                  inputMode="numeric"
                 />
               </div>
 

@@ -21,7 +21,6 @@ interface Profile {
   full_name: string
   email: string
   phone: string | null
-  nid: string | null
   role: string
   created_at: string
 }
@@ -45,11 +44,11 @@ export default function UsersPage() {
   const [creating, setCreating] = useState(false)
   const [updating, setUpdating] = useState(false)
   const [error, setError] = useState('')
+  const [selectedRole, setSelectedRole] = useState<string>('all')
 
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
-    nid: '',
     password: '',
     role: 'staff'
   })
@@ -101,7 +100,7 @@ export default function UsersPage() {
       const { data: usersData, error: usersError } = await supabase
         .from('profiles')
         .select('*')
-        .in('role', ['staff', 'manager', 'admin'])
+        .in('role', ['guest', 'staff', 'manager', 'admin'])
         .order('created_at', { ascending: false })
 
       if (usersError) throw usersError
@@ -113,7 +112,7 @@ export default function UsersPage() {
   }
 
   const handleCreateUser = async () => {
-    if (!formData.full_name || !formData.email || !formData.nid || !formData.password) {
+    if (!formData.full_name || !formData.email || !formData.password) {
       setError('Please fill in all required fields')
       return
     }
@@ -130,7 +129,6 @@ export default function UsersPage() {
           email: formData.email,
           password: formData.password,
           full_name: formData.full_name,
-          nid: formData.nid,
           role: formData.role
         })
       })
@@ -148,7 +146,6 @@ export default function UsersPage() {
       setFormData({
         full_name: '',
         email: '',
-        nid: '',
         password: '',
         role: 'staff'
       })
@@ -242,6 +239,11 @@ export default function UsersPage() {
   const staffCount = users.filter(u => u.role === 'staff').length
   const managerCount = users.filter(u => u.role === 'manager').length
   const adminCount = users.filter(u => u.role === 'admin').length
+  const guestCount = users.filter(u => u.role === 'guest').length
+
+  const filteredUsers = selectedRole === 'all'
+    ? users
+    : users.filter(u => u.role === selectedRole)
 
   return (
     <div className="min-h-screen bg-[#F5F3EF]">
@@ -278,7 +280,7 @@ export default function UsersPage() {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <Card className="bg-white shadow-sm">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
@@ -314,6 +316,35 @@ export default function UsersPage() {
                 <p className="text-2xl font-bold text-gray-900">{adminCount}</p>
               </CardContent>
             </Card>
+
+            <Card className="bg-white shadow-sm">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-amber-50 rounded-lg">
+                    <UsersIcon className="w-6 h-6 text-amber-600" />
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600 mb-1">Guests</p>
+                <p className="text-2xl font-bold text-gray-900">{guestCount}</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Filter */}
+          <div className="mb-6 flex items-center gap-4">
+            <Label htmlFor="role-filter" className="font-medium text-gray-700">Filter by Role:</Label>
+            <Select value={selectedRole} onValueChange={setSelectedRole}>
+              <SelectTrigger id="role-filter" className="w-48">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Roles</SelectItem>
+                <SelectItem value="guest">Guests</SelectItem>
+                <SelectItem value="staff">Staff</SelectItem>
+                <SelectItem value="manager">Managers</SelectItem>
+                <SelectItem value="admin">Administrators</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Users Table */}
@@ -324,25 +355,23 @@ export default function UsersPage() {
                   <TableRow className="border-b border-gray-200">
                     <TableHead className="font-semibold text-gray-700">Name</TableHead>
                     <TableHead className="font-semibold text-gray-700">Email</TableHead>
-                    <TableHead className="font-semibold text-gray-700">NID</TableHead>
                     <TableHead className="font-semibold text-gray-700">Role</TableHead>
                     <TableHead className="font-semibold text-gray-700">Created</TableHead>
                     <TableHead className="font-semibold text-gray-700">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users.length === 0 ? (
+                  {filteredUsers.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-gray-500">
-                        No users found
+                      <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                        {users.length === 0 ? 'No users found' : 'No users matching selected role'}
                       </TableCell>
                     </TableRow>
                   ) : (
-                    users.map((user) => (
+                    filteredUsers.map((user) => (
                       <TableRow key={user.id} className="border-b border-gray-100">
                         <TableCell className="font-medium text-gray-900">{user.full_name}</TableCell>
                         <TableCell className="text-gray-700">{user.email}</TableCell>
-                        <TableCell className="text-gray-700 font-mono text-sm">{user.nid || 'N/A'}</TableCell>
                         <TableCell>
                           <Badge
                             className={
@@ -350,6 +379,8 @@ export default function UsersPage() {
                                 ? 'bg-purple-100 text-purple-700 border-0'
                                 : user.role === 'manager'
                                 ? 'bg-green-100 text-green-700 border-0'
+                                : user.role === 'guest'
+                                ? 'bg-amber-100 text-amber-700 border-0'
                                 : 'bg-blue-100 text-blue-700 border-0'
                             }
                           >
@@ -429,15 +460,6 @@ export default function UsersPage() {
               />
             </div>
             <div>
-              <Label htmlFor="nid">National ID (NID) *</Label>
-              <Input
-                id="nid"
-                value={formData.nid}
-                onChange={(e) => setFormData({ ...formData, nid: e.target.value })}
-                placeholder="A123456"
-              />
-            </div>
-            <div>
               <Label htmlFor="password">Password *</Label>
               <Input
                 id="password"
@@ -454,6 +476,7 @@ export default function UsersPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="guest">Guest</SelectItem>
                   <SelectItem value="staff">Staff</SelectItem>
                   <SelectItem value="manager">Manager</SelectItem>
                   <SelectItem value="admin">Administrator</SelectItem>
@@ -501,6 +524,7 @@ export default function UsersPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="guest">Guest</SelectItem>
                   <SelectItem value="staff">Staff</SelectItem>
                   <SelectItem value="manager">Manager</SelectItem>
                   <SelectItem value="admin">Administrator</SelectItem>

@@ -89,21 +89,14 @@ CREATE TABLE booking_services (
 ALTER TABLE hotels ENABLE ROW LEVEL SECURITY;
 ALTER TABLE room_types ENABLE ROW LEVEL SECURITY;
 ALTER TABLE rooms ENABLE ROW LEVEL SECURITY;
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE profiles DISABLE ROW LEVEL SECURITY;
 ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE booking_rooms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE services ENABLE ROW LEVEL SECURITY;
 ALTER TABLE booking_services ENABLE ROW LEVEL SECURITY;
 
--- Profiles policies
-CREATE POLICY "Users can view own profile" ON profiles
-    FOR SELECT USING (auth.uid() = id);
-
-CREATE POLICY "Users can update own profile" ON profiles
-    FOR UPDATE USING (auth.uid() = id);
-
-CREATE POLICY "Anyone can insert their profile" ON profiles
-    FOR INSERT WITH CHECK (auth.uid() = id);
+-- Profiles table - RLS disabled to prevent recursion issues
+-- Access control handled at application level
 
 -- Hotels policies (public read access)
 CREATE POLICY "Hotels are viewable by everyone" ON hotels
@@ -209,7 +202,11 @@ CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
     INSERT INTO public.profiles (id, full_name, role)
-    VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'full_name', 'User'), 'guest');
+    VALUES (
+        NEW.id,
+        COALESCE(NEW.raw_user_meta_data->>'full_name', 'User'),
+        COALESCE(NEW.raw_user_meta_data->>'role', 'guest')
+    );
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

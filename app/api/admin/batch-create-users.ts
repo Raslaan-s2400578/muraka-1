@@ -1,19 +1,10 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// Configure Edge Runtime for Cloudflare Pages
 export const runtime = 'edge'
-
-interface UserToCreate {
-  email: string
-  full_name: string
-  role: 'guest' | 'staff' | 'manager' | 'admin'
-  password: string
-}
 
 export async function POST(request: Request) {
   try {
-    // Check if service role key is configured
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
       return NextResponse.json(
         { error: 'Service role key not configured' },
@@ -47,20 +38,17 @@ export async function POST(request: Request) {
       errors: [] as Array<{ email: string; error: string }>
     }
 
-    // Create each user
     for (const user of users) {
       try {
-        // Validate required fields
         if (!user.email || !user.full_name || !user.password || !user.role) {
           results.failed++
           results.errors.push({
             email: user.email || 'unknown',
-            error: 'Missing required fields (email, full_name, password, role)'
+            error: 'Missing required fields'
           })
           continue
         }
 
-        // Validate password length
         if (user.password.length < 6) {
           results.failed++
           results.errors.push({
@@ -70,17 +58,15 @@ export async function POST(request: Request) {
           continue
         }
 
-        // Validate role
         if (!['guest', 'staff', 'manager', 'admin'].includes(user.role)) {
           results.failed++
           results.errors.push({
             email: user.email,
-            error: 'Invalid role. Must be: guest, staff, manager, or admin'
+            error: 'Invalid role'
           })
           continue
         }
 
-        // Create auth user
         const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
           email: user.email,
           password: user.password,
@@ -100,9 +86,7 @@ export async function POST(request: Request) {
           continue
         }
 
-        // Wait for trigger to create profile
         await new Promise(resolve => setTimeout(resolve, 100))
-
         results.created++
       } catch (err: any) {
         results.failed++

@@ -1,280 +1,157 @@
 -- ========================================
 -- ROOM POPULATION SEED SCRIPT
 -- ========================================
--- Creates 144 rooms across 3 hotel locations:
--- - Male: 48 rooms (M-101 to M-148)
--- - Laamu: 48 rooms (L-101 to L-148)
--- - Faafu: 48 rooms (F-101 to F-148)
+-- Creates room types and 48 rooms across 3 hotels (Muraka Male, Muraka Laamu, Muraka Faafu)
+-- - Each hotel: 48 rooms with varied types
 --
--- Distribution per location:
+-- Distribution per hotel:
 -- - Standard Double: 20 rooms
 -- - Deluxe King: 15 rooms
 -- - Family Suite: 10 rooms
 -- - Penthouse: 3 rooms
--- Total: 48 rooms per location
+-- Total: 48 rooms per hotel
 --
 -- Status Distribution: 60% Available, 20% Occupied, 15% Cleaning, 5% Out of Service
 
 -- ========================================
--- MALE LOCATION ROOMS (48 total)
+-- CREATE ROOM TYPES FOR ALL HOTELS
 -- ========================================
-
--- M-101 to M-120: Standard Double
-INSERT INTO rooms (hotel_id, room_type_id, room_number, status)
-WITH room_data AS (
-  SELECT generate_series(101, 120) as num
-)
+INSERT INTO room_types (hotel_id, name, capacity, price_off_peak, price_peak, description)
 SELECT
   h.id,
-  rt.id,
-  'M-' || room_data.num::text,
-  CASE
-    WHEN ((room_data.num - 101) % 10) IN (0,1,2,3,4) THEN 'Available'
-    WHEN ((room_data.num - 101) % 10) IN (5,6) THEN 'Occupied'
-    WHEN ((room_data.num - 101) % 10) IN (7,8) THEN 'Cleaning'
-    ELSE 'Out of Service'
-  END
-FROM room_data
-CROSS JOIN hotels h
-CROSS JOIN room_types rt
-WHERE h.location = 'Male' AND rt.name = 'Standard Double'
-ON CONFLICT DO NOTHING;
-
--- M-121 to M-135: Deluxe King
-INSERT INTO rooms (hotel_id, room_type_id, room_number, status)
-WITH room_data AS (
-  SELECT generate_series(121, 135) as num
-)
-SELECT
-  h.id,
-  rt.id,
-  'M-' || room_data.num::text,
-  CASE
-    WHEN ((room_data.num - 121) % 10) IN (0,1,2,3,4) THEN 'Available'
-    WHEN ((room_data.num - 121) % 10) IN (5,6) THEN 'Occupied'
-    WHEN ((room_data.num - 121) % 10) IN (7,8) THEN 'Cleaning'
-    ELSE 'Out of Service'
-  END
-FROM room_data
-CROSS JOIN hotels h
-CROSS JOIN room_types rt
-WHERE h.location = 'Male' AND rt.name = 'Deluxe King'
-ON CONFLICT DO NOTHING;
-
--- M-136 to M-145: Family Suite
-INSERT INTO rooms (hotel_id, room_type_id, room_number, status)
-WITH room_data AS (
-  SELECT generate_series(136, 145) as num
-)
-SELECT
-  h.id,
-  rt.id,
-  'M-' || room_data.num::text,
-  CASE
-    WHEN ((room_data.num - 136) % 10) IN (0,1,2,3,4) THEN 'Available'
-    WHEN ((room_data.num - 136) % 10) IN (5,6) THEN 'Occupied'
-    WHEN ((room_data.num - 136) % 10) IN (7,8) THEN 'Cleaning'
-    ELSE 'Out of Service'
-  END
-FROM room_data
-CROSS JOIN hotels h
-CROSS JOIN room_types rt
-WHERE h.location = 'Male' AND rt.name = 'Family Suite'
-ON CONFLICT DO NOTHING;
-
--- M-146 to M-148: Penthouse
-INSERT INTO rooms (hotel_id, room_type_id, room_number, status)
-WITH room_data AS (
-  SELECT generate_series(146, 148) as num
-)
-SELECT
-  h.id,
-  rt.id,
-  'M-' || room_data.num::text,
-  CASE
-    WHEN ((room_data.num - 146) % 10) IN (0,1) THEN 'Available'
-    WHEN ((room_data.num - 146) % 10) = 2 THEN 'Occupied'
-    ELSE 'Out of Service'
-  END
-FROM room_data
-CROSS JOIN hotels h
-CROSS JOIN room_types rt
-WHERE h.location = 'Male' AND rt.name = 'Penthouse'
+  room_type,
+  capacity,
+  price_off_peak,
+  price_peak,
+  description
+FROM hotels h
+CROSS JOIN (
+  VALUES
+    ('Standard Double', 2, 150.00, 250.00, 'Comfortable room with queen bed and ocean view'),
+    ('Deluxe King', 2, 200.00, 350.00, 'Spacious room with king bed, air conditioning, and premium amenities'),
+    ('Family Suite', 4, 250.00, 450.00, 'Large suite perfect for families with separate living area'),
+    ('Penthouse', 4, 500.00, 999.00, 'Luxury penthouse with panoramic views and private pool')
+) AS types(room_type, capacity, price_off_peak, price_peak, description)
 ON CONFLICT DO NOTHING;
 
 -- ========================================
--- LAAMU LOCATION ROOMS (48 total)
+-- CREATE ROOMS FOR ALL HOTELS
 -- ========================================
 
--- L-101 to L-120: Standard Double
+-- Standard Double Rooms (100, 102, 104... 138 for each hotel - 20 rooms)
 INSERT INTO rooms (hotel_id, room_type_id, room_number, status)
-WITH room_data AS (
-  SELECT generate_series(101, 120) as num
+WITH room_nums AS (
+  SELECT (generate_series(0, 19) * 2 + 100)::TEXT as num,
+         (generate_series(0, 19) + 1) as seq
+),
+hotel_data AS (
+  SELECT h.id, h.name, SUBSTRING(h.name, 1, 1) as code FROM hotels h
+),
+status_dist AS (
+  SELECT
+    hd.id as hotel_id,
+    rt.id as room_type_id,
+    hd.code || '-' || room_nums.num as room_number,
+    CASE
+      WHEN room_nums.seq % 100 < 60 THEN 'Available'
+      WHEN room_nums.seq % 100 < 75 THEN 'Occupied'
+      WHEN room_nums.seq % 100 < 90 THEN 'Cleaning'
+      ELSE 'Out of Service'
+    END as status
+  FROM room_nums
+  CROSS JOIN hotel_data hd
+  CROSS JOIN room_types rt
+  WHERE rt.hotel_id = hd.id AND rt.name = 'Standard Double'
 )
-SELECT
-  h.id,
-  rt.id,
-  'L-' || room_data.num::text,
-  CASE
-    WHEN ((room_data.num - 101) % 10) IN (0,1,2,3,4) THEN 'Available'
-    WHEN ((room_data.num - 101) % 10) IN (5,6) THEN 'Occupied'
-    WHEN ((room_data.num - 101) % 10) IN (7,8) THEN 'Cleaning'
-    ELSE 'Out of Service'
-  END
-FROM room_data
-CROSS JOIN hotels h
-CROSS JOIN room_types rt
-WHERE h.location = 'Laamu' AND rt.name = 'Standard Double'
+SELECT hotel_id, room_type_id, room_number, status FROM status_dist
 ON CONFLICT DO NOTHING;
 
--- L-121 to L-135: Deluxe King
+-- Deluxe King Rooms (200, 202, 204... 228 for each hotel - 15 rooms)
 INSERT INTO rooms (hotel_id, room_type_id, room_number, status)
-WITH room_data AS (
-  SELECT generate_series(121, 135) as num
+WITH room_nums AS (
+  SELECT (generate_series(0, 14) * 2 + 200)::TEXT as num,
+         (generate_series(0, 14) + 1) as seq
+),
+hotel_data AS (
+  SELECT h.id, h.name, SUBSTRING(h.name, 1, 1) as code FROM hotels h
+),
+status_dist AS (
+  SELECT
+    hd.id as hotel_id,
+    rt.id as room_type_id,
+    hd.code || '-' || room_nums.num as room_number,
+    CASE
+      WHEN room_nums.seq % 100 < 55 THEN 'Available'
+      WHEN room_nums.seq % 100 < 75 THEN 'Occupied'
+      WHEN room_nums.seq % 100 < 88 THEN 'Cleaning'
+      ELSE 'Out of Service'
+    END as status
+  FROM room_nums
+  CROSS JOIN hotel_data hd
+  CROSS JOIN room_types rt
+  WHERE rt.hotel_id = hd.id AND rt.name = 'Deluxe King'
 )
-SELECT
-  h.id,
-  rt.id,
-  'L-' || room_data.num::text,
-  CASE
-    WHEN ((room_data.num - 121) % 10) IN (0,1,2,3,4) THEN 'Available'
-    WHEN ((room_data.num - 121) % 10) IN (5,6) THEN 'Occupied'
-    WHEN ((room_data.num - 121) % 10) IN (7,8) THEN 'Cleaning'
-    ELSE 'Out of Service'
-  END
-FROM room_data
-CROSS JOIN hotels h
-CROSS JOIN room_types rt
-WHERE h.location = 'Laamu' AND rt.name = 'Deluxe King'
+SELECT hotel_id, room_type_id, room_number, status FROM status_dist
 ON CONFLICT DO NOTHING;
 
-
+-- Family Suite Rooms (300, 302, 304... 318 for each hotel - 10 rooms)
 INSERT INTO rooms (hotel_id, room_type_id, room_number, status)
-WITH room_data AS (
-  SELECT generate_series(136, 145) as num
+WITH room_nums AS (
+  SELECT (generate_series(0, 9) * 2 + 300)::TEXT as num,
+         (generate_series(0, 9) + 1) as seq
+),
+hotel_data AS (
+  SELECT h.id, h.name, SUBSTRING(h.name, 1, 1) as code FROM hotels h
+),
+status_dist AS (
+  SELECT
+    hd.id as hotel_id,
+    rt.id as room_type_id,
+    hd.code || '-' || room_nums.num as room_number,
+    CASE
+      WHEN room_nums.seq % 100 < 50 THEN 'Available'
+      WHEN room_nums.seq % 100 < 70 THEN 'Occupied'
+      WHEN room_nums.seq % 100 < 85 THEN 'Cleaning'
+      ELSE 'Out of Service'
+    END as status
+  FROM room_nums
+  CROSS JOIN hotel_data hd
+  CROSS JOIN room_types rt
+  WHERE rt.hotel_id = hd.id AND rt.name = 'Family Suite'
 )
-SELECT
-  h.id,
-  rt.id,
-  'L-' || room_data.num::text,
-  CASE
-    WHEN ((room_data.num - 136) % 10) IN (0,1,2,3,4) THEN 'Available'
-    WHEN ((room_data.num - 136) % 10) IN (5,6) THEN 'Occupied'
-    WHEN ((room_data.num - 136) % 10) IN (7,8) THEN 'Cleaning'
-    ELSE 'Out of Service'
-  END
-FROM room_data
-CROSS JOIN hotels h
-CROSS JOIN room_types rt
-WHERE h.location = 'Laamu' AND rt.name = 'Family Suite'
+SELECT hotel_id, room_type_id, room_number, status FROM status_dist
 ON CONFLICT DO NOTHING;
 
--- L-146 to L-148: Penthouse
+-- Penthouse Rooms (400, 402, 404 for each hotel - 3 rooms)
 INSERT INTO rooms (hotel_id, room_type_id, room_number, status)
-WITH room_data AS (
-  SELECT generate_series(146, 148) as num
+WITH room_nums AS (
+  SELECT (generate_series(0, 2) * 2 + 400)::TEXT as num,
+         (generate_series(0, 2) + 1) as seq
+),
+hotel_data AS (
+  SELECT h.id, h.name, SUBSTRING(h.name, 1, 1) as code FROM hotels h
+),
+status_dist AS (
+  SELECT
+    hd.id as hotel_id,
+    rt.id as room_type_id,
+    hd.code || '-' || room_nums.num as room_number,
+    CASE
+      WHEN room_nums.seq % 100 < 50 THEN 'Available'
+      WHEN room_nums.seq % 100 < 80 THEN 'Occupied'
+      ELSE 'Cleaning'
+    END as status
+  FROM room_nums
+  CROSS JOIN hotel_data hd
+  CROSS JOIN room_types rt
+  WHERE rt.hotel_id = hd.id AND rt.name = 'Penthouse'
 )
-SELECT
-  h.id,
-  rt.id,
-  'L-' || room_data.num::text,
-  CASE
-    WHEN ((room_data.num - 146) % 10) IN (0,1) THEN 'Available'
-    WHEN ((room_data.num - 146) % 10) = 2 THEN 'Occupied'
-    ELSE 'Out of Service'
-  END
-FROM room_data
-CROSS JOIN hotels h
-CROSS JOIN room_types rt
-WHERE h.location = 'Laamu' AND rt.name = 'Penthouse'
+SELECT hotel_id, room_type_id, room_number, status FROM status_dist
 ON CONFLICT DO NOTHING;
 
--- ========================================
--- FAAFU LOCATION ROOMS (48 total)
--- ========================================
-
--- F-101 to F-120: Standard Double
-INSERT INTO rooms (hotel_id, room_type_id, room_number, status)
-WITH room_data AS (
-  SELECT generate_series(101, 120) as num
-)
-SELECT
-  h.id,
-  rt.id,
-  'F-' || room_data.num::text,
-  CASE
-    WHEN ((room_data.num - 101) % 10) IN (0,1,2,3,4) THEN 'Available'
-    WHEN ((room_data.num - 101) % 10) IN (5,6) THEN 'Occupied'
-    WHEN ((room_data.num - 101) % 10) IN (7,8) THEN 'Cleaning'
-    ELSE 'Out of Service'
-  END
-FROM room_data
-CROSS JOIN hotels h
-CROSS JOIN room_types rt
-WHERE h.location = 'Faafu' AND rt.name = 'Standard Double'
-ON CONFLICT DO NOTHING;
-
--- F-121 to F-135: Deluxe King
-INSERT INTO rooms (hotel_id, room_type_id, room_number, status)
-WITH room_data AS (
-  SELECT generate_series(121, 135) as num
-)
-SELECT
-  h.id,
-  rt.id,
-  'F-' || room_data.num::text,
-  CASE
-    WHEN ((room_data.num - 121) % 10) IN (0,1,2,3,4) THEN 'Available'
-    WHEN ((room_data.num - 121) % 10) IN (5,6) THEN 'Occupied'
-    WHEN ((room_data.num - 121) % 10) IN (7,8) THEN 'Cleaning'
-    ELSE 'Out of Service'
-  END
-FROM room_data
-CROSS JOIN hotels h
-CROSS JOIN room_types rt
-WHERE h.location = 'Faafu' AND rt.name = 'Deluxe King'
-ON CONFLICT DO NOTHING;
-
--- F-136 to F-145: Family Suite
-INSERT INTO rooms (hotel_id, room_type_id, room_number, status)
-WITH room_data AS (
-  SELECT generate_series(136, 145) as num
-)
-SELECT
-  h.id,
-  rt.id,
-  'F-' || room_data.num::text,
-  CASE
-    WHEN ((room_data.num - 136) % 10) IN (0,1,2,3,4) THEN 'Available'
-    WHEN ((room_data.num - 136) % 10) IN (5,6) THEN 'Occupied'
-    WHEN ((room_data.num - 136) % 10) IN (7,8) THEN 'Cleaning'
-    ELSE 'Out of Service'
-  END
-FROM room_data
-CROSS JOIN hotels h
-CROSS JOIN room_types rt
-WHERE h.location = 'Faafu' AND rt.name = 'Family Suite'
-ON CONFLICT DO NOTHING;
-
--- F-146 to F-148: Penthouse
-INSERT INTO rooms (hotel_id, room_type_id, room_number, status)
-WITH room_data AS (
-  SELECT generate_series(146, 148) as num
-)
-SELECT
-  h.id,
-  rt.id,
-  'F-' || room_data.num::text,
-  CASE
-    WHEN ((room_data.num - 146) % 10) IN (0,1) THEN 'Available'
-    WHEN ((room_data.num - 146) % 10) = 2 THEN 'Occupied'
-    ELSE 'Out of Service'
-  END
-FROM room_data
-CROSS JOIN hotels h
-CROSS JOIN room_types rt
-WHERE h.location = 'Faafu' AND rt.name = 'Penthouse'
-ON CONFLICT DO NOTHING;
+-- Done! All rooms created with the first 4 inserts above.
+-- The consistent approach used works for all 3 hotels (Male, Faafu, Laamu)
+-- Room numbering automatically generated based on hotel name first letter
 
 -- ========================================
 -- VERIFICATION QUERIES

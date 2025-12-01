@@ -42,6 +42,11 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
+  // Skip middleware for API routes
+  if (pathname.startsWith('/api/')) {
+    return supabaseResponse
+  }
+
   // Public routes that don't require authentication
   const publicRoutes = ['/', '/login', '/signup', '/search']
   const isPublicRoute = publicRoutes.includes(pathname) || pathname.startsWith('/search')

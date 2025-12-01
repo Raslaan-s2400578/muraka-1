@@ -44,47 +44,51 @@ The endpoint is already created at: `/api/admin/seed-bookings`
 ### How to Use:
 
 #### From the Command Line:
+
 ```bash
 curl -X POST http://localhost:3000/api/admin/seed-bookings \
   -H "Content-Type: application/json"
 ```
 
 #### From JavaScript/Frontend:
-```javascript
-const response = await fetch('/api/admin/seed-bookings', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' }
-})
 
-const result = await response.json()
-console.log(result)
+```javascript
+const response = await fetch("/api/admin/seed-bookings", {
+	method: "POST",
+	headers: { "Content-Type": "application/json" },
+});
+
+const result = await response.json();
+console.log(result);
 // Output: { success: true, bookingsCreated: 20, guestCount: 20 }
 ```
 
 #### From Next.js Page Component:
+
 ```typescript
 const seedBookings = async () => {
-  try {
-    const response = await fetch('/api/admin/seed-bookings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    })
+	try {
+		const response = await fetch("/api/admin/seed-bookings", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+		});
 
-    const result = await response.json()
-    if (result.success) {
-      alert(`Success! Created ${result.bookingsCreated} bookings`)
-    } else {
-      alert(`Error: ${result.error}`)
-    }
-  } catch (error) {
-    console.error('Seeding error:', error)
-  }
-}
+		const result = await response.json();
+		if (result.success) {
+			alert(`Success! Created ${result.bookingsCreated} bookings`);
+		} else {
+			alert(`Error: ${result.error}`);
+		}
+	} catch (error) {
+		console.error("Seeding error:", error);
+	}
+};
 ```
 
 ### Requirements:
 
 Before running the seeder, ensure you have:
+
 1. ✅ **Guest accounts created** (at least 1 guest account)
 2. ✅ **Hotels in database** (should already exist from schema.sql)
 3. ✅ **Rooms in database** (created by seed-rooms.sql)
@@ -97,6 +101,7 @@ If you get an error saying "No guest accounts found", create some guest accounts
 ## What Gets Created
 
 Each booking includes:
+
 - **Guest**: Randomly assigned from your 20 guest accounts
 - **Hotel**: Randomly selected from your 3 hotels
 - **Dates**: Mix of past, present, and future bookings
@@ -119,6 +124,7 @@ Each booking includes:
 ## Total Data Created
 
 Running the seeder creates:
+
 - **20 bookings** (1 per guest account)
 - **20 booking_rooms** (room assignments)
 - **10-15 booking_services** (random services added to 50% of bookings)
@@ -128,16 +134,21 @@ Running the seeder creates:
 ## Troubleshooting
 
 ### Error: "No guest accounts found"
+
 **Solution**: Create guest accounts first using the admin panel (User Management → Add User)
 
 ### Error: "No hotels found in database"
+
 **Solution**: The hotels should be created by schema.sql. Run the schema setup again.
 
 ### Error: "No rooms found in database"
+
 **Solution**: Run the room seeder: `supabase/seed-rooms.sql`
 
 ### Bookings not appearing in UI
+
 **Solution**:
+
 1. Refresh the page
 2. Check browser console for errors
 3. Verify guests are properly logged in
@@ -179,6 +190,7 @@ DELETE FROM bookings;
 ## Next Steps
 
 After seeding bookings:
+
 1. ✅ Guests can now log in and view their bookings
 2. ✅ Staff can view all bookings
 3. ✅ Managers can see analytics with booking data

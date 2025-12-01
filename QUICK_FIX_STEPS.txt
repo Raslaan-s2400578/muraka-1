@@ -1,0 +1,73 @@
+════════════════════════════════════════════════════════════════════════════════
+                    QUICK FIX FOR BOOKING DISPLAY ISSUES
+════════════════════════════════════════════════════════════════════════════════
+
+PROBLEM:
+  - Guest names showing as "Unknown"
+  - Guest numbers all showing as "1"
+
+SOLUTION - Follow these 3 steps:
+
+════════════════════════════════════════════════════════════════════════════════
+STEP 1: Run Migration (Adds missing columns to bookings table)
+════════════════════════════════════════════════════════════════════════════════
+
+1. Go to: https://app.supabase.com
+2. Select your "Muraka Hotels" project
+3. Click: SQL Editor (left sidebar)
+4. Click: New Query
+5. Paste this SQL:
+
+  ALTER TABLE bookings
+  ADD COLUMN IF NOT EXISTS num_guests INTEGER DEFAULT 1 CHECK (num_guests > 0),
+  ADD COLUMN IF NOT EXISTS phone TEXT,
+  ADD COLUMN IF NOT EXISTS special_requests TEXT;
+
+6. Click: RUN
+
+Expected: "success - no rows returned"
+
+════════════════════════════════════════════════════════════════════════════════
+STEP 2: Delete Old Bookings (Optional - if you want fresh data)
+════════════════════════════════════════════════════════════════════════════════
+
+1. SQL Editor > New Query
+2. Paste this SQL:
+
+  DELETE FROM booking_services;
+  DELETE FROM booking_rooms;
+  DELETE FROM bookings;
+
+3. Click: RUN
+
+════════════════════════════════════════════════════════════════════════════════
+STEP 3: Run Updated Seeder (Creates bookings with proper guest numbers)
+════════════════════════════════════════════════════════════════════════════════
+
+1. Open file: supabase/seed-bookings.sql
+2. Copy the entire contents
+3. Go to Supabase > SQL Editor > New Query
+4. Paste all the code
+5. Click: RUN
+
+Expected: "Bookings seeded successfully! X bookings created."
+
+════════════════════════════════════════════════════════════════════════════════
+STEP 4: Refresh Admin Dashboard
+════════════════════════════════════════════════════════════════════════════════
+
+1. Go to: http://localhost:3000/dashboard/admin/bookings
+2. Hard refresh: Ctrl+Shift+R (or Cmd+Shift+R on Mac)
+
+RESULT: Guest names and guest numbers should now display correctly!
+
+════════════════════════════════════════════════════════════════════════════════
+
+THAT'S IT! The issue should be fixed.
+
+If you still see "Unknown" or all "1"s:
+- Check browser console (F12) for errors
+- Make sure all 3 steps were completed in order
+- Hard refresh browser cache (Ctrl+Shift+R)
+
+════════════════════════════════════════════════════════════════════════════════

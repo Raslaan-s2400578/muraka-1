@@ -50,7 +50,10 @@ CREATE TABLE bookings (
     hotel_id UUID REFERENCES hotels(id) ON DELETE CASCADE,
     check_in DATE NOT NULL,
     check_out DATE NOT NULL,
+    num_guests INTEGER DEFAULT 1 CHECK (num_guests > 0),
     total_price DECIMAL(10,2) NOT NULL,
+    phone TEXT,
+    special_requests TEXT,
     status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'checked_in', 'checked_out', 'cancelled')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -98,9 +101,27 @@ ALTER TABLE booking_services ENABLE ROW LEVEL SECURITY;
 -- Profiles table - RLS disabled to prevent recursion issues
 -- Access control handled at application level
 
--- Hotels policies (public read access)
+-- Hotels policies (public read access, admin can create/update)
 CREATE POLICY "Hotels are viewable by everyone" ON hotels
     FOR SELECT USING (true);
+
+CREATE POLICY "Admins can create hotels" ON hotels
+    FOR INSERT WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM profiles
+            WHERE profiles.id = auth.uid()
+            AND profiles.role = 'admin'
+        )
+    );
+
+CREATE POLICY "Admins can update hotels" ON hotels
+    FOR UPDATE USING (
+        EXISTS (
+            SELECT 1 FROM profiles
+            WHERE profiles.id = auth.uid()
+            AND profiles.role = 'admin'
+        )
+    );
 
 -- Room types policies (public read access)
 CREATE POLICY "Room types are viewable by everyone" ON room_types

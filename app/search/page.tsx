@@ -10,10 +10,13 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar } from '@/components/ui/calendar'
 import { UsersIcon, MapPinIcon, CalendarIcon, FilterIcon, ArrowLeft, Bed, Wifi, Coffee } from 'lucide-react'
 import { format, differenceInDays } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import type { DateRange } from 'react-day-picker'
 
 interface RoomTypeWithHotel {
   id: string
@@ -36,15 +39,32 @@ function SearchPageContent() {
   const router = useRouter()
   const [roomTypes, setRoomTypes] = useState<RoomTypeWithHotel[]>([])
   const [loading, setLoading] = useState(true)
+  const [isSearching, setIsSearching] = useState(false)
   const [error, setError] = useState('')
   const [sortBy, setSortBy] = useState('price')
   const [filterCapacity, setFilterCapacity] = useState('0')
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
 
-  const location = searchParams.get('location')
-  const checkIn = searchParams.get('checkIn')
-  const checkOut = searchParams.get('checkOut')
-  const guests = parseInt(searchParams.get('guests') || '2')
+  // Local filter states
+  const [selectedLocation, setSelectedLocation] = useState<string>(searchParams.get('location') || 'all')
+  const [selectedGuests, setSelectedGuests] = useState<number>(parseInt(searchParams.get('guests') || '2'))
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
+    const checkInParam = searchParams.get('checkIn')
+    const checkOutParam = searchParams.get('checkOut')
+    if (checkInParam && checkOutParam) {
+      return {
+        from: new Date(checkInParam),
+        to: new Date(checkOutParam)
+      }
+    }
+    return undefined
+  })
+
+  const location = selectedLocation === 'all' ? null : selectedLocation
+  const checkIn = dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : searchParams.get('checkIn')
+  const checkOut = dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : searchParams.get('checkOut')
+  const guests = selectedGuests
   const roomType = searchParams.get('roomType')
 
   const supabase = createClient()
@@ -60,17 +80,22 @@ function SearchPageContent() {
 
   useEffect(() => {
     if (!checkIn || !checkOut) {
-      setError('Missing search parameters')
+      setError('Please select check-in and check-out dates')
       setLoading(false)
       return
     }
 
+    // Automatically search when filters change
     searchRooms()
-  }, [location, checkIn, checkOut, guests, roomType])
+  }, [location, checkIn, checkOut, guests, roomType, selectedLocation, selectedGuests, dateRange])
 
   const searchRooms = async () => {
     try {
-      setLoading(true)
+      if (isInitialLoad) {
+        setLoading(true)
+      } else {
+        setIsSearching(true)
+      }
       setError('')
 
       // Get all hotels or filter by location if provided
@@ -186,6 +211,8 @@ function SearchPageContent() {
       toast.error('Failed to search rooms. Please try again.')
     } finally {
       setLoading(false)
+      setIsSearching(false)
+      setIsInitialLoad(false)
     }
   }
 
@@ -341,7 +368,7 @@ function SearchPageContent() {
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Luxury Sidebar Filters */}
           <div className="lg:w-1/4">
-            <Card className="border-0 shadow-xl">
+            <Card className="border-0 shadow-xl sticky top-4">
               <div className="bg-gradient-to-br from-blue-50 to-white p-6 rounded-t-lg">
                 <h3 className="flex items-center text-xl font-serif font-bold text-gray-900">
                   <FilterIcon className="w-5 h-5 mr-2 text-blue-600" />
@@ -349,6 +376,89 @@ function SearchPageContent() {
                 </h3>
               </div>
               <CardContent className="p-6 space-y-6">
+                {/* Loading indicator */}
+                {isSearching && (
+                  <div className="flex items-center justify-center py-2 text-blue-600">
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent mr-2"></div>
+                    <span className="text-sm">Updating results...</span>
+                  </div>
+                )}
+
+                {/* Date Range Picker */}
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 mb-3 block">Dates</label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !dateRange && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dateRange?.from ? (
+                          dateRange.to ? (
+                            <>
+                              {format(dateRange.from, "LLL dd")} - {format(dateRange.to, "LLL dd, y")}
+                            </>
+                          ) : (
+                            format(dateRange.from, "LLL dd, y")
+                          )
+                        ) : (
+                          <span>Pick dates</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="range"
+                        defaultMonth={dateRange?.from}
+                        selected={dateRange}
+                        onSelect={setDateRange}
+                        numberOfMonths={1}
+                        disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                {/* Location Filter */}
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 mb-3 block">Location</label>
+                  <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+                    <SelectTrigger className="border-gray-300">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Locations</SelectItem>
+                      <SelectItem value="Male">Muraka Male</SelectItem>
+                      <SelectItem value="Laamu">Muraka Laamu</SelectItem>
+                      <SelectItem value="Faafu">Muraka Faafu</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Guests Filter */}
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 mb-3 block">Guests</label>
+                  <Select value={selectedGuests.toString()} onValueChange={(val) => setSelectedGuests(parseInt(val))}>
+                    <SelectTrigger className="border-gray-300">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 Guest</SelectItem>
+                      <SelectItem value="2">2 Guests</SelectItem>
+                      <SelectItem value="3">3 Guests</SelectItem>
+                      <SelectItem value="4">4 Guests</SelectItem>
+                      <SelectItem value="5">5 Guests</SelectItem>
+                      <SelectItem value="6">6 Guests</SelectItem>
+                      <SelectItem value="7">7 Guests</SelectItem>
+                      <SelectItem value="8">8+ Guests</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div>
                   <label className="text-sm font-semibold text-gray-700 mb-3 block">Sort By</label>
                   <Select value={sortBy} onValueChange={setSortBy}>
@@ -377,21 +487,22 @@ function SearchPageContent() {
                     </SelectContent>
                   </Select>
                 </div>
-
-                <Button
-                  variant="outline"
-                  className="w-full mt-4"
-                  onClick={() => router.push('/')}
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  New Search
-                </Button>
               </CardContent>
             </Card>
           </div>
 
           {/* Results */}
-          <div className="lg:w-3/4">
+          <div className="lg:w-3/4 relative">
+            {/* Overlay during search */}
+            {isSearching && (
+              <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 rounded-lg flex items-start justify-center pt-12">
+                <div className="bg-white rounded-lg shadow-lg p-4 flex items-center gap-3">
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-600 border-t-transparent"></div>
+                  <span className="text-sm font-medium text-gray-700">Updating results...</span>
+                </div>
+              </div>
+            )}
+
             {sortedRooms.length === 0 ? (
               <Card className="border-0 shadow-xl">
                 <CardContent className="p-12 text-center">
@@ -419,82 +530,96 @@ function SearchPageContent() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-6">
-                {sortedRooms.map((roomType) => (
-                  <Card key={roomType.id} className="overflow-hidden border-0 shadow-xl hover:shadow-2xl transition-shadow duration-300 group">
-                    <div className="flex flex-col md:flex-row">
-                      {/* Room Image with Gradient Overlay */}
-                      <div className="md:w-2/5 h-64 md:h-auto bg-gradient-to-br from-blue-100 to-blue-200 relative overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-                        <div className="absolute bottom-6 left-6 text-white">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Bed className="w-6 h-6" />
-                            <span className="text-lg font-semibold">{roomType.name}</span>
-                          </div>
-                          <Badge className="bg-white/20 backdrop-blur-sm text-white border-0">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {sortedRooms.map((roomType) => {
+                  // Generate room-specific Unsplash image based on room type
+                  const getRoomImage = (name: string) => {
+                    const roomTypes: { [key: string]: string } = {
+                      'Standard Double': 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&q=80',
+                      'Deluxe Double': 'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800&q=80',
+                      'Family Suite': 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800&q=80',
+                      'Presidential Suite': 'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=800&q=80',
+                    }
+                    return roomTypes[name] || 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&q=80'
+                  }
+
+                  return (
+                    <Card key={roomType.id} className="overflow-hidden border-0 shadow-xl hover:shadow-2xl transition-all duration-300 group flex flex-col">
+                      {/* Room Image */}
+                      <div className="relative h-48 overflow-hidden">
+                        <img
+                          src={getRoomImage(roomType.name)}
+                          alt={roomType.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                        <div className="absolute top-4 right-4">
+                          <Badge className="bg-white/20 backdrop-blur-sm text-white border-0 text-xs">
                             {roomType.available_rooms} available
                           </Badge>
+                        </div>
+                        <div className="absolute bottom-4 left-4 text-white">
+                          <div className="flex items-center gap-2">
+                            <Bed className="w-5 h-5" />
+                            <span className="text-lg font-semibold">{roomType.name}</span>
+                          </div>
                         </div>
                       </div>
 
                       {/* Room Details */}
-                      <div className="md:w-3/5 p-8">
-                        <div className="flex justify-between items-start mb-4">
-                          <div>
-                            <h3 className="text-2xl font-serif font-bold text-gray-900 mb-2">{roomType.name}</h3>
-                            <p className="text-blue-600 font-semibold text-sm mb-3">{roomType.hotel.name}</p>
-                            <p className="text-gray-600 mb-4 leading-relaxed">{roomType.description}</p>
+                      <div className="p-5 flex flex-col flex-grow">
+                        <div className="mb-3">
+                          <p className="text-blue-600 font-semibold text-sm mb-2">{roomType.hotel.name}</p>
+                          <p className="text-gray-600 text-sm leading-relaxed line-clamp-2">{roomType.description}</p>
+                        </div>
 
-                            <div className="flex flex-wrap gap-4 mb-4">
-                              <div className="flex items-center text-sm text-gray-600">
-                                <UsersIcon className="w-4 h-4 mr-2 text-blue-600" />
-                                Up to {roomType.capacity} guests
-                              </div>
-                              <div className="flex items-center text-sm text-gray-600">
-                                <MapPinIcon className="w-4 h-4 mr-2 text-blue-600" />
-                                {roomType.hotel.location} Atoll
-                              </div>
-                              <div className="flex items-center text-sm text-gray-600">
-                                <Wifi className="w-4 h-4 mr-2 text-blue-600" />
-                                Free WiFi
-                              </div>
-                              <div className="flex items-center text-sm text-gray-600">
-                                <Coffee className="w-4 h-4 mr-2 text-blue-600" />
-                                Breakfast Included
-                              </div>
-                            </div>
+                        <div className="flex flex-wrap gap-3 mb-4">
+                          <div className="flex items-center text-xs text-gray-600">
+                            <UsersIcon className="w-3.5 h-3.5 mr-1.5 text-blue-600" />
+                            Up to {roomType.capacity} guests
                           </div>
+                          <div className="flex items-center text-xs text-gray-600">
+                            <MapPinIcon className="w-3.5 h-3.5 mr-1.5 text-blue-600" />
+                            {roomType.hotel.location} Atoll
+                          </div>
+                          <div className="flex items-center text-xs text-gray-600">
+                            <Wifi className="w-3.5 h-3.5 mr-1.5 text-blue-600" />
+                            Free WiFi
+                          </div>
+                          <div className="flex items-center text-xs text-gray-600">
+                            <Coffee className="w-3.5 h-3.5 mr-1.5 text-blue-600" />
+                            Breakfast Included
+                          </div>
+                        </div>
 
-                          <div className="text-right ml-6">
-                            <div className="bg-gradient-to-br from-blue-50 to-gold-50 p-4 rounded-lg">
-                              <div className="text-3xl font-bold text-blue-900">
+                        <div className="mt-auto pt-4 border-t space-y-3">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <div className="text-2xl font-bold text-blue-900">
                                 ${calculatePrice(roomType).toLocaleString()}
                               </div>
-                              <div className="text-sm text-gray-600 mt-1">
-                                ${roomType.price_off_peak}/night
-                              </div>
-                              <div className="text-xs text-gray-500 mt-1">
-                                {nights} night{nights !== 1 ? 's' : ''}
+                              <div className="text-xs text-gray-500">
+                                ${roomType.price_off_peak}/night · {nights} night{nights !== 1 ? 's' : ''}
                               </div>
                             </div>
                           </div>
-                        </div>
 
-                        <div className="border-t pt-4 flex justify-between items-center">
-                          <div className="text-sm text-green-600 font-medium">
-                            ✓ Free cancellation until 24h before check-in
+                          <div className="flex flex-col gap-2">
+                            <div className="text-xs text-green-600 font-medium">
+                              ✓ Free cancellation until 24h before check-in
+                            </div>
+                            <Button
+                              onClick={() => handleBooking(roomType.id)}
+                              className="w-full bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-700 text-white font-semibold h-10"
+                            >
+                              Book Now
+                            </Button>
                           </div>
-                          <Button
-                            onClick={() => handleBooking(roomType.id)}
-                            className="bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-700 text-white font-semibold px-8"
-                          >
-                            Book Now
-                          </Button>
                         </div>
                       </div>
-                    </div>
-                  </Card>
-                ))}
+                    </Card>
+                  )
+                })}
               </div>
             )}
           </div>

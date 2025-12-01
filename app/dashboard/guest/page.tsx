@@ -141,11 +141,17 @@ function GuestDashboardContent() {
         phone: profileData.phone || ''
       })
 
-      // Load user bookings
+      // Load user bookings with hotel data
       const { data: bookingsData, error: bookingsError } = await supabase
         .from('bookings')
         .select(`
           *,
+          hotel:hotels(
+            id,
+            name,
+            location,
+            address
+          ),
           booking_rooms(
             room:rooms(
               room_number,
@@ -164,25 +170,8 @@ function GuestDashboardContent() {
         throw bookingsError
       }
 
-      // Fetch hotel data separately and merge
-      if (bookingsData && bookingsData.length > 0) {
-        const hotelIds = [...new Set(bookingsData.map(b => b.hotel_id))]
-        const { data: hotels } = await supabase
-          .from('hotels')
-          .select('id, name, location, address')
-          .in('id', hotelIds)
-
-        const hotelMap = new Map(hotels?.map(h => [h.id, h]) || [])
-
-        const bookingsWithHotels = bookingsData.map(booking => ({
-          ...booking,
-          hotel: hotelMap.get(booking.hotel_id) || { name: 'Unknown Hotel', location: 'Unknown', address: '' }
-        }))
-
-        setBookings(bookingsWithHotels)
-      } else {
-        setBookings([])
-      }
+      // Set bookings with hotel data already included from the query
+      setBookings(bookingsData || [])
 
       // Load payment history
       const { data: paymentsData, error: paymentsError } = await supabase
@@ -415,6 +404,10 @@ Thank you for your business!
     new Date(b.check_out) < new Date() || b.status === 'cancelled' || b.status === 'checked_out'
   )
 
+  // Calculate stats excluding cancelled bookings
+  const activeBookings = bookings.filter(b => b.status !== 'cancelled')
+  const totalSpent = activeBookings.reduce((sum, b) => sum + b.total_price, 0)
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -433,7 +426,11 @@ Thank you for your business!
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-blue-600">Muraka Hotels</h1>
+              <Link href="/">
+                <h1 className="text-2xl font-bold text-blue-600 cursor-pointer hover:text-blue-700 transition-colors">
+                  Muraka Hotels
+                </h1>
+              </Link>
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">Welcome, {profile?.full_name}</span>
@@ -474,7 +471,7 @@ Thank you for your business!
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Total Bookings</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-1">{bookings.length}</p>
+                  <p className="text-3xl font-bold text-gray-900 mt-1">{activeBookings.length}</p>
                 </div>
                 <CalendarIcon className="w-10 h-10 text-blue-500 opacity-50" />
               </div>
@@ -499,7 +496,7 @@ Thank you for your business!
                 <div>
                   <p className="text-sm font-medium text-gray-600">Total Spent</p>
                   <p className="text-3xl font-bold text-gray-900 mt-1">
-                    ${bookings.reduce((sum, b) => sum + b.total_price, 0).toLocaleString()}
+                    ${totalSpent.toLocaleString()}
                   </p>
                 </div>
                 <CreditCardIcon className="w-10 h-10 text-purple-500 opacity-50" />

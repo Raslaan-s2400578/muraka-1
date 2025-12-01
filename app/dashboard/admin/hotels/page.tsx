@@ -46,8 +46,8 @@ export default function HotelsPage() {
   const [formData, setFormData] = useState({
     name: '',
     location: 'Male',
-    address: '',
-    description: ''
+    address: 'Muraka Island, Male Atoll, Maldives',
+    description: 'Luxury resort in the Maldives offering world-class amenities and stunning ocean views'
   })
 
   const router = useRouter()
@@ -171,8 +171,14 @@ export default function HotelsPage() {
         return
       }
 
+      console.log('Creating hotel with data:', {
+        name: formData.name.trim(),
+        location: formData.location,
+        address: formData.address.trim()
+      })
+
       // Insert hotel into database
-      const { error: insertError } = await supabase
+      const { data, error: insertError } = await supabase
         .from('hotels')
         .insert([
           {
@@ -183,17 +189,26 @@ export default function HotelsPage() {
         ])
         .select()
 
+      console.log('Insert response:', { data, error: insertError })
+
       if (insertError) {
-        throw insertError
+        console.error('Supabase insert error:', insertError)
+        throw new Error(insertError.message || insertError.details || 'Failed to create hotel')
       }
+
+      if (!data || data.length === 0) {
+        throw new Error('Hotel was not created - no data returned')
+      }
+
+      console.log('Hotel created successfully:', data)
 
       // Success - reset form and close dialog
       setSuccess('Hotel created successfully!')
       setFormData({
         name: '',
         location: 'Male',
-        address: '',
-        description: ''
+        address: 'Muraka Island, Male Atoll, Maldives',
+        description: 'Luxury resort in the Maldives offering world-class amenities and stunning ocean views'
       })
 
       // Reload hotels
@@ -207,7 +222,8 @@ export default function HotelsPage() {
 
     } catch (err: any) {
       console.error('Create hotel error:', err)
-      setError(err.message || 'Failed to create hotel')
+      console.error('Error details:', JSON.stringify(err, null, 2))
+      setError(err.message || 'Failed to create hotel. Check console for details.')
     }
   }
 
@@ -296,14 +312,9 @@ export default function HotelsPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Male">Male</SelectItem>
-                        <SelectItem value="Laamu">Laamu</SelectItem>
-                        <SelectItem value="Faafu">Faafu</SelectItem>
-                        <SelectItem value="Ari">Ari</SelectItem>
-                        <SelectItem value="Baa">Baa</SelectItem>
-                        <SelectItem value="Raa">Raa</SelectItem>
-                        <SelectItem value="Noonu">Noonu</SelectItem>
-                        <SelectItem value="Dhaalu">Dhaalu</SelectItem>
+                        <SelectItem value="Male">Muraka - Male Atoll</SelectItem>
+                        <SelectItem value="Faafu">Muraka - Faafu Atoll</SelectItem>
+                        <SelectItem value="Laamu">Muraka - Laamu Atoll</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

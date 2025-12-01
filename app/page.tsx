@@ -750,10 +750,22 @@ export default function Home() {
                   </div>
 
                   <div className="flex flex-col sm:flex-row gap-3">
-                    <Button className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 min-h-[48px] sm:min-h-0">
+                    <Button
+                      onClick={() => router.push('/rooms')}
+                      className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 min-h-[48px] sm:min-h-0"
+                    >
                       View Details
                     </Button>
-                    <Button className="flex-1 bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-700 min-h-[48px] sm:min-h-0">
+                    <Button
+                      onClick={() => {
+                        if (user) {
+                          router.push('/rooms')
+                        } else {
+                          router.push('/login')
+                        }
+                      }}
+                      className="flex-1 bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-700 min-h-[48px] sm:min-h-0"
+                    >
                       Book Now
                     </Button>
                   </div>
@@ -800,9 +812,6 @@ export default function Home() {
                   <p className="text-gray-600 text-xs sm:text-sm">Daily wellness sessions</p>
                 </div>
               </div>
-              <Button className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-base sm:text-lg px-6 sm:px-8 py-4 sm:py-6 min-h-[48px] sm:min-h-0">
-                Book Spa Treatment
-              </Button>
             </div>
 
             <div className="relative h-64 sm:h-96 lg:h-[600px] rounded-2xl overflow-hidden shadow-2xl">
@@ -846,9 +855,8 @@ export default function Home() {
                 </div>
                 <CardContent className="p-4 sm:p-6">
                   <p className="text-sm sm:text-base text-gray-700 mb-3">{restaurant.description}</p>
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex items-center justify-between">
                     <span className="text-xs sm:text-sm text-gray-500">{restaurant.ambiance}</span>
-                    <Button variant="outline" size="sm" className="w-full sm:w-auto min-h-[48px] sm:min-h-0">Reserve Table</Button>
                   </div>
                 </CardContent>
               </Card>
@@ -949,17 +957,13 @@ export default function Home() {
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-2 mb-6 sm:mb-8">
+                  <div className="flex flex-wrap gap-2">
                     {location.features.map((feature, idx) => (
                       <Badge key={idx} className="bg-blue-100 text-blue-700 border-0 text-xs sm:text-sm">
                         {feature}
                       </Badge>
                     ))}
                   </div>
-
-                  <Button className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white min-h-[48px] sm:min-h-0">
-                    Explore {location.name}
-                  </Button>
                 </div>
 
                 <div className={cn(

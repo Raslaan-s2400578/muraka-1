@@ -2,8 +2,8 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -19,8 +19,19 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
+
+  // Check for success message from signup
+  useEffect(() => {
+    const message = searchParams.get('message')
+    if (message) {
+      setSuccessMessage(message)
+      toast.success(message)
+    }
+  }, [searchParams])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -78,6 +89,12 @@ export default function LoginPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
+              {successMessage && (
+                <Alert className="bg-green-50 border-green-200">
+                  <AlertDescription className="text-green-800">{successMessage}</AlertDescription>
+                </Alert>
+              )}
+
               {error && (
                 <Alert variant="destructive">
                   <AlertDescription>{error}</AlertDescription>

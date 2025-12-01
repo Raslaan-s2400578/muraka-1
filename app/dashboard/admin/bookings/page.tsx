@@ -155,21 +155,16 @@ export default function BookingsPage() {
       }
 
       console.log('Fetched bookings:', bookingsData.length)
-      console.log('Sample booking data:', bookingsData.slice(0, 2))
 
-      // Fetch all profiles with email from auth.users
-      // Since profiles.id references auth.users.id, we can join them
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, full_name, email, role')
-
-      if (profilesError) {
-        console.error('Profiles fetch error:', profilesError)
-      }
-
-      // Fetch all hotels
+      // Fetch related data using direct Supabase queries
+      // Get all hotels
       const { data: hotelsData } = await supabase
         .from('hotels')
+        .select('id, name, location')
+
+      // Get room types
+      const { data: roomTypesData } = await supabase
+        .from('room_types')
         .select('id, name')
 
       // Fetch booking_rooms with room details
@@ -185,31 +180,29 @@ export default function BookingsPage() {
           )
         `)
 
-      // Fetch room types
-      const { data: roomTypesData } = await supabase
-        .from('room_types')
-        .select('id, name')
+      // Get all guest IDs from bookings, then fetch their profiles
+      const guestIds = [...new Set(bookingsData.map(b => b.guest_id))]
+      let profilesData: any[] = []
 
-      console.log('Profiles:', profilesData?.length || 0)
-      console.log('Sample profiles:', profilesData?.slice(0, 2))
-      console.log('Hotels:', hotelsData?.length || 0)
-      console.log('Sample hotels:', hotelsData)
-      console.log('Booking rooms:', bookingRoomsData?.length || 0)
-      console.log('Sample booking_rooms:', bookingRoomsData?.slice(0, 3))
-      console.log('Room types:', roomTypesData?.length || 0)
+      if (guestIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name, email, role')
+          .in('id', guestIds)
 
-      // Get unique guest_ids from bookings that don't have profiles
-      const guestIdsWithoutProfiles = bookingsData
-        .map(b => b.guest_id)
-        .filter(guestId => !profilesData?.find(p => p.id === guestId))
-
-      console.log('Guest IDs without profiles:', guestIdsWithoutProfiles.length)
-      console.log('Sample missing guest IDs:', guestIdsWithoutProfiles.slice(0, 3))
+        profilesData = profiles || []
+        console.log('Profiles fetched for guests:', profilesData.length)
+      }
 
       // Create lookup maps
-      const profilesMap = new Map(profilesData?.map(p => [p.id, p]) || [])
-      const hotelsMap = new Map(hotelsData?.map(h => [h.id, h]) || [])
-      const roomTypesMap = new Map(roomTypesData?.map(rt => [rt.id, rt]) || [])
+      const profilesMap = new Map(profilesData?.map((p: any) => [p.id, p]) || [])
+      const hotelsMap = new Map(hotelsData?.map((h: any) => [h.id, h]) || [])
+      const roomTypesMap = new Map(roomTypesData?.map((rt: any) => [rt.id, rt]) || [])
+
+      console.log('Profiles in map:', profilesMap.size)
+      console.log('Sample profile keys:', Array.from(profilesMap.keys()).slice(0, 3))
+      console.log('Hotels in map:', hotelsMap.size)
+      console.log('Sample hotel keys:', Array.from(hotelsMap.keys()).slice(0, 3))
 
       // Group booking rooms by booking_id
       const bookingRoomsMap = new Map<string, any[]>()
@@ -222,43 +215,28 @@ export default function BookingsPage() {
 
       // Transform bookings with joined data
       const transformedBookings = bookingsData.map((booking: any, index: number) => {
-        const guest = profilesMap.get(booking.guest_id)
+        const guest = profilesMap.get(booking.guest_id) || { full_name: 'Unknown', email: '', id: '' }
+        const hotel = hotelsMap.get(booking.hotel_id) || { name: 'Unknown', location: '', id: '' }
         const bookingRooms = bookingRoomsMap.get(booking.id) || []
 
-        // Get hotel from the room's hotel_id since booking.hotel_id is null
-        let hotel = null
-        let hotelFromRoom = null
-        if (booking.hotel_id) {
-          hotel = hotelsMap.get(booking.hotel_id)
+        if (index === 0) {
+          console.log('First booking raw data:', booking)
+          console.log('Guest lookup with ID:', booking.guest_id, '-> Found:', guest)
+          console.log('Hotel lookup with ID:', booking.hotel_id, '-> Found:', hotel)
         }
-        // Try to get hotel from first room if booking doesn't have hotel_id
-        if (!hotel && bookingRooms.length > 0 && bookingRooms[0].rooms?.hotel_id) {
-          hotelFromRoom = hotelsMap.get(bookingRooms[0].rooms.hotel_id)
-        }
-
-        const finalHotel = hotel || hotelFromRoom
 
         console.log(`Booking ${index}:`, {
           id: booking.id,
           guest_id: booking.guest_id,
-          hotel_id: booking.hotel_id,
-          room_hotel_id: bookingRooms[0]?.rooms?.hotel_id,
-          found_guest: !!guest,
-          found_hotel: !!finalHotel,
-          num_rooms: bookingRooms.length
+          guest_name: (guest as any)?.full_name || 'Unknown',
+          hotel_name: (hotel as any)?.name || 'Unknown',
+          num_guests: booking.num_guests
         })
-
-        if (!guest) {
-          console.warn(`Booking ${booking.id}: No profile found for guest_id ${booking.guest_id}`)
-        }
-        if (!finalHotel) {
-          console.warn(`Booking ${booking.id}: No hotel found`)
-        }
 
         return {
           ...booking,
-          guest: guest || { full_name: 'Unknown', email: '' },
-          hotel: finalHotel || { name: 'Unknown' },
+          guest,
+          hotel,
           booking_rooms: bookingRooms.map((br: any) => {
             const roomType = br.rooms?.room_type_id
               ? roomTypesMap.get(br.rooms.room_type_id)

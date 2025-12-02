@@ -108,6 +108,10 @@ export default function PaymentsPage() {
 
       if (paymentsError) {
         console.error('Payments error:', paymentsError)
+        if (paymentsError.code === 'PGRST205') {
+          // Table doesn't exist
+          setError('Payments table needs to be created. Please run the database migration or create it in Supabase.')
+        }
         setPayments([])
         return
       }

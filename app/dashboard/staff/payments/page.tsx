@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { CreditCard, Clock, CheckCircle, XCircle, Search, Eye, Edit, Trash2, Landmark } from 'lucide-react'
+import { CreditCard, Search, Eye, Edit, Trash2, Landmark } from 'lucide-react'
 
 interface Payment {
   id: string
@@ -237,11 +237,6 @@ export default function PaymentsPage() {
     return matchesSearch && matchesStatus
   })
 
-  const totalRevenue = payments.filter(p => p.status === 'completed').reduce((sum, p) => sum + p.amount, 0)
-  const pendingPayments = payments.filter(p => p.status === 'pending').length
-  const failedPayments = payments.filter(p => p.status === 'failed').length
-  const successRate = payments.length > 0 ? Math.round((payments.filter(p => p.status === 'completed').length / payments.length) * 100) : 0
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -277,59 +272,6 @@ export default function PaymentsPage() {
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Payment Management</h1>
             <p className="text-gray-600">Track and manage all payment transactions</p>
-          </div>
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card className="bg-white shadow-sm">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="p-3 bg-green-50 rounded-lg">
-                    <CreditCard className="w-6 h-6 text-green-600" />
-                  </div>
-                </div>
-                <p className="text-sm text-gray-600 mb-1">Total Revenue</p>
-                <p className="text-2xl font-bold text-gray-900 mb-2">
-                  ${totalRevenue.toLocaleString()}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white shadow-sm">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="p-3 bg-yellow-50 rounded-lg">
-                    <Clock className="w-6 h-6 text-yellow-600" />
-                  </div>
-                </div>
-                <p className="text-sm text-gray-600 mb-1">Pending Payments</p>
-                <p className="text-2xl font-bold text-gray-900">{pendingPayments}</p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white shadow-sm">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="p-3 bg-green-50 rounded-lg">
-                    <CheckCircle className="w-6 h-6 text-green-600" />
-                  </div>
-                </div>
-                <p className="text-sm text-gray-600 mb-1">Success Rate</p>
-                <p className="text-2xl font-bold text-gray-900">{successRate}%</p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white shadow-sm">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="p-3 bg-red-50 rounded-lg">
-                    <XCircle className="w-6 h-6 text-red-600" />
-                  </div>
-                </div>
-                <p className="text-sm text-gray-600 mb-1">Failed Payments</p>
-                <p className="text-2xl font-bold text-gray-900">{failedPayments}</p>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Search and Filter */}

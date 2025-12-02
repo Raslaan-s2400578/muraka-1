@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Sidebar } from '@/components/Sidebar'
 import { Button } from '@/components/ui/button'
@@ -12,25 +12,40 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { SearchIcon, UsersIcon } from 'lucide-react'
-import { useCustomers } from '@/hooks/useCustomers'
 import { createClient } from '@/lib/supabase/client'
-import { useQuery } from '@tanstack/react-query'
 import { format } from 'date-fns'
+
+interface Customer {
+  id: string
+  full_name: string
+  email: string
+  phone: string | null
+  created_at: string
+  bookings_count: number
+}
 
 export default function StaffCustomersPage() {
   const [searchTerm, setSearchTerm] = useState('')
-  const [page, setPage] = useState(0)
+  const [customers, setCustomers] = useState<Customer[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const router = useRouter()
   const supabase = createClient()
 
-  // Fetch current user profile
-  const { data: profile } = useQuery({
-    queryKey: ['profile'],
-    queryFn: async () => {
+  useEffect(() => {
+    loadData()
+  }, [searchTerm])
+
+  const loadData = async () => {
+    try {
+      setLoading(true)
+      setError('')
+
+      // Check user profile and permissions
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         router.push('/login')
-        return null
+        return
       }
 
       const { data: profile } = await supabase
@@ -41,20 +56,54 @@ export default function StaffCustomersPage() {
 
       if (profile?.role !== 'staff' && profile?.role !== 'manager' && profile?.role !== 'admin') {
         router.push('/dashboard/guest')
-        return null
+        return
       }
 
-      return profile
-    },
-    staleTime: 5 * 60 * 1000,
-  })
+      // Fetch all guest profiles
+      let query = supabase
+        .from('profiles')
+        .select('id, full_name, email, phone, created_at')
+        .eq('role', 'guest')
 
-  // Fetch customers
-  const { data: customersData, isLoading, error } = useCustomers({
-    page,
-    pageSize: 20,
-    searchTerm,
-  })
+      if (searchTerm) {
+        query = query.or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%`)
+      }
+
+      const { data: profilesData, error: profilesError } = await query.order('created_at', { ascending: false })
+
+      if (profilesError) {
+        throw profilesError
+      }
+
+      // Get booking counts for each customer
+      if (profilesData && profilesData.length > 0) {
+        const customerIds = profilesData.map(p => p.id)
+        const { data: bookingsData } = await supabase
+          .from('bookings')
+          .select('guest_id')
+          .in('guest_id', customerIds)
+
+        const bookingCountsMap = new Map<string, number>()
+        bookingsData?.forEach(booking => {
+          bookingCountsMap.set(booking.guest_id, (bookingCountsMap.get(booking.guest_id) || 0) + 1)
+        })
+
+        const customersWithCounts = profilesData.map(profile => ({
+          ...profile,
+          bookings_count: bookingCountsMap.get(profile.id) || 0
+        }))
+
+        setCustomers(customersWithCounts)
+      } else {
+        setCustomers([])
+      }
+    } catch (err) {
+      console.error('Error loading customers:', err)
+      setError('Failed to load customers. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut()
@@ -63,8 +112,15 @@ export default function StaffCustomersPage() {
     }
   }
 
-  if (isLoading || !profile) {
-    return null // Loading handled by loading.tsx
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p>Loading customers...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -78,7 +134,7 @@ export default function StaffCustomersPage() {
             router.push(`/dashboard/staff/${view}`)
           }
         }}
-        user={{ name: profile.full_name || '', role: 'Staff' }}
+        user={{ name: 'Staff', role: 'Staff' }}
         onLogout={handleSignOut}
       />
 
@@ -91,7 +147,7 @@ export default function StaffCustomersPage() {
 
           {error && (
             <Alert variant="destructive" className="mb-6">
-              <AlertDescription>Failed to load customers. Please try again.</AlertDescription>
+              <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
 
@@ -99,7 +155,7 @@ export default function StaffCustomersPage() {
             <CardHeader>
               <CardTitle>All Customers</CardTitle>
               <CardDescription>
-                Guest list with booking history ({customersData?.total || 0} total)
+                Guest list with booking history ({customers.length} total)
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -128,7 +184,7 @@ export default function StaffCustomersPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {customersData?.customers.length === 0 ? (
+                  {customers.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center text-gray-500 py-8">
                         <UsersIcon className="w-12 h-12 text-gray-300 mx-auto mb-2" />
@@ -136,7 +192,7 @@ export default function StaffCustomersPage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    customersData?.customers.map((customer) => (
+                    customers.map((customer) => (
                       <TableRow key={customer.id} className="border-b border-gray-100">
                         <TableCell>
                           <div>
@@ -152,7 +208,7 @@ export default function StaffCustomersPage() {
                         </TableCell>
                         <TableCell>
                           <Badge variant="secondary">
-                            {customer._count?.bookings || 0} {customer._count?.bookings === 1 ? 'booking' : 'bookings'}
+                            {customer.bookings_count} {customer.bookings_count === 1 ? 'booking' : 'bookings'}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-sm text-gray-600">
@@ -168,33 +224,6 @@ export default function StaffCustomersPage() {
                   )}
                 </TableBody>
               </Table>
-
-              {/* Pagination */}
-              {customersData && customersData.total > customersData.pageSize && (
-                <div className="flex items-center justify-between mt-6">
-                  <p className="text-sm text-gray-600">
-                    Showing {page * customersData.pageSize + 1} to {Math.min((page + 1) * customersData.pageSize, customersData.total)} of {customersData.total} customers
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setPage(p => Math.max(0, p - 1))}
-                      disabled={page === 0}
-                    >
-                      Previous
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setPage(p => p + 1)}
-                      disabled={(page + 1) * customersData.pageSize >= customersData.total}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                </div>
-              )}
             </CardContent>
           </Card>
         </div>

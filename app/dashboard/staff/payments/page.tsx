@@ -39,6 +39,7 @@ export default function PaymentsPage() {
   const [payments, setPayments] = useState<Payment[]>([])
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [activeView] = useState('payments')
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')

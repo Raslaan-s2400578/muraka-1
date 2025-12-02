@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { SearchIcon, DollarSign, Clock, CheckCircle, XCircle } from 'lucide-react'
+import { SearchIcon, DollarSign, Clock, XCircle } from 'lucide-react'
 import { format } from 'date-fns'
 
 interface Booking {
@@ -60,8 +60,7 @@ export default function StaffDashboard() {
   const [bookingStatusFilter, setBookingStatusFilter] = useState('all')
   const [totalRevenue, setTotalRevenue] = useState(0)
   const [pendingPayments, setPendingPayments] = useState(0)
-  const [successRate, setSuccessRate] = useState(0)
-  const [failedPayments, setFailedPayments] = useState(0)
+  const [cancelledBookings, setCancelledBookings] = useState(0)
 
   const router = useRouter()
   const supabase = createClient()
@@ -125,37 +124,13 @@ export default function StaffDashboard() {
         const confirmedBookings = bookings.filter(b => b.status === 'confirmed' || b.status === 'checked_in' || b.status === 'checked_out')
         const total = confirmedBookings.reduce((sum, b) => sum + (b.total_price || 0), 0)
 
-        // Try to get actual payment data
-        const { data: payments } = await supabase
-          .from('payments')
-          .select('status')
+        // Count pending and cancelled bookings
+        const pendingCount = bookings.filter(b => b.status === 'pending').length
+        const cancelledCount = bookings.filter(b => b.status === 'cancelled').length
 
-        if (payments && payments.length > 0) {
-          // Use actual payment data if it exists
-          const pending = payments.filter(p => p.status === 'pending').length
-          const successful = payments.filter(p => p.status === 'successful').length
-          const failed = payments.filter(p => p.status === 'failed').length
-          const successRatePercent = payments.length > 0 ? Math.round((successful / payments.length) * 100) : 0
-
-          setTotalRevenue(total)
-          setPendingPayments(pending)
-          setSuccessRate(successRatePercent)
-          setFailedPayments(failed)
-        } else {
-          // If no payments exist yet, show stats based on bookings
-          // Simulate: 70% successful, 20% pending, 10% failed
-          const totalPayments = confirmedBookings.length
-          const simulatedPending = Math.floor(totalPayments * 0.2)
-          const simulatedFailed = Math.floor(totalPayments * 0.1)
-          const successRatePercent = totalPayments > 0 ? 70 : 0
-
-          setTotalRevenue(total)
-          setPendingPayments(simulatedPending)
-          setSuccessRate(successRatePercent)
-          setFailedPayments(simulatedFailed)
-
-          console.log('No payment records found. Showing simulated stats based on confirmed bookings')
-        }
+        setTotalRevenue(total)
+        setPendingPayments(pendingCount)
+        setCancelledBookings(cancelledCount)
       }
     } catch (err) {
       console.error('Loading payment stats error:', err)
@@ -365,7 +340,7 @@ export default function StaffDashboard() {
           )}
 
           {/* Payment Stats Cards */}
-          <div className="grid grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-3 gap-6 mb-8">
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-start justify-between">
@@ -382,7 +357,7 @@ export default function StaffDashboard() {
               <CardContent className="pt-6">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Pending Payments</p>
+                    <p className="text-sm text-gray-500 mb-1">Pending Bookings</p>
                     <p className="text-2xl font-bold text-gray-900">{pendingPayments}</p>
                   </div>
                   <Clock className="w-8 h-8 text-yellow-500" />
@@ -394,20 +369,8 @@ export default function StaffDashboard() {
               <CardContent className="pt-6">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-sm text-gray-500 mb-1">Success Rate</p>
-                    <p className="text-2xl font-bold text-gray-900">{successRate}%</p>
-                  </div>
-                  <CheckCircle className="w-8 h-8 text-green-500" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm text-gray-500 mb-1">Failed Payments</p>
-                    <p className="text-2xl font-bold text-gray-900">{failedPayments}</p>
+                    <p className="text-sm text-gray-500 mb-1">Cancelled Bookings</p>
+                    <p className="text-2xl font-bold text-gray-900">{cancelledBookings}</p>
                   </div>
                   <XCircle className="w-8 h-8 text-red-500" />
                 </div>

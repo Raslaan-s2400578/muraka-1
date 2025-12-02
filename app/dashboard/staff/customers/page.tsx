@@ -59,14 +59,14 @@ export default function StaffCustomersPage() {
         return
       }
 
-      // Fetch all guest profiles
+      // Fetch all guest profiles with their booking counts
       let query = supabase
         .from('profiles')
-        .select('id, full_name, email, phone, created_at')
+        .select('id, full_name, phone, created_at')
         .eq('role', 'guest')
 
       if (searchTerm) {
-        query = query.or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%`)
+        query = query.or(`full_name.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%`)
       }
 
       const { data: profilesData, error: profilesError } = await query.order('created_at', { ascending: false })
@@ -76,6 +76,7 @@ export default function StaffCustomersPage() {
       }
 
       // Get booking counts for each customer
+      let customersWithCounts: Customer[] = []
       if (profilesData && profilesData.length > 0) {
         const customerIds = profilesData.map(p => p.id)
         const { data: bookingsData } = await supabase
@@ -88,15 +89,17 @@ export default function StaffCustomersPage() {
           bookingCountsMap.set(booking.guest_id, (bookingCountsMap.get(booking.guest_id) || 0) + 1)
         })
 
-        const customersWithCounts = profilesData.map(profile => ({
-          ...profile,
+        customersWithCounts = profilesData.map(profile => ({
+          id: profile.id,
+          full_name: profile.full_name,
+          email: profile.full_name.includes('@') ? profile.full_name : 'N/A',
+          phone: profile.phone || 'No phone',
+          created_at: profile.created_at,
           bookings_count: bookingCountsMap.get(profile.id) || 0
         }))
-
-        setCustomers(customersWithCounts)
-      } else {
-        setCustomers([])
       }
+
+      setCustomers(customersWithCounts)
     } catch (err) {
       console.error('Error loading customers:', err)
       setError('Failed to load customers. Please try again.')

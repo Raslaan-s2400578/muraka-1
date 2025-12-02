@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 export async function GET(request: NextRequest) {
   try {
@@ -27,33 +28,38 @@ export async function GET(request: NextRequest) {
     })
 
     console.log('Fetching profiles...')
-    // Fetch all profiles (using service role for full access)
-    // First try the normal way
-    let profilesData: any[] = []
-    const { data, error: profilesError } = await adminSupabase
+    // Fetch all profiles from profiles table
+    const { data: profilesTableData, error: profilesTableError } = await adminSupabase
       .from('profiles')
-      .select('id, full_name, email, role')
+      .select('id, full_name, role')
 
-    if (profilesError) {
-      console.error('Profiles fetch error:', profilesError)
-      // Try fetching from auth.users as fallback
-      try {
-        const { data: authData } = await adminSupabase.auth.admin.listUsers()
-        if (authData?.users) {
-          profilesData = authData.users.map(u => ({
-            id: u.id,
-            full_name: u.user_metadata?.full_name || u.email || 'Unknown',
-            email: u.email,
-            role: u.user_metadata?.role || 'guest'
-          }))
-          console.log('Profiles from auth.users:', profilesData.length)
-        }
-      } catch (authError) {
-        console.error('Auth users fetch error:', authError)
-      }
+    let profilesData: any[] = []
+
+    if (profilesTableError) {
+      console.error('Profiles table fetch error:', profilesTableError)
     } else {
-      profilesData = data || []
-      console.log('Profiles fetched:', profilesData.length)
+      profilesData = profilesTableData || []
+      console.log('Profiles from table:', profilesData.length)
+    }
+
+    // Fetch emails from auth.users and merge with profile data
+    try {
+      const { data: authData } = await adminSupabase.auth.admin.listUsers()
+      if (authData?.users) {
+        const emailMap = new Map(authData.users.map(u => [u.id, u.email || 'N/A']))
+        profilesData = profilesData.map(p => ({
+          ...p,
+          email: emailMap.get(p.id) || 'N/A'
+        }))
+        console.log('Added emails to profiles, total:', profilesData.length)
+      }
+    } catch (authError) {
+      console.error('Failed to fetch emails from auth:', authError)
+      // Add placeholder emails if auth fetch fails
+      profilesData = profilesData.map(p => ({
+        ...p,
+        email: 'N/A'
+      }))
     }
 
     console.log('Fetching hotels...')

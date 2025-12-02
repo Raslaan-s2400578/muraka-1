@@ -86,6 +86,18 @@ CREATE TABLE booking_services (
     UNIQUE(booking_id, service_id)
 );
 
+-- Create payments table
+CREATE TABLE payments (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    booking_id UUID REFERENCES bookings(id) ON DELETE CASCADE,
+    amount DECIMAL(10,2) NOT NULL,
+    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'successful', 'failed', 'refunded')),
+    payment_method TEXT,
+    transaction_id TEXT UNIQUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Row Level Security (RLS) Policies
 
 -- Enable RLS on all tables
@@ -97,6 +109,7 @@ ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE booking_rooms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE services ENABLE ROW LEVEL SECURITY;
 ALTER TABLE booking_services ENABLE ROW LEVEL SECURITY;
+ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 
 -- Profiles table - RLS disabled to prevent recursion issues
 -- Access control handled at application level
@@ -254,3 +267,40 @@ CREATE TRIGGER update_profiles_updated_at
 CREATE TRIGGER update_bookings_updated_at
     BEFORE UPDATE ON bookings
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_payments_updated_at
+    BEFORE UPDATE ON payments
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Payments RLS Policies
+CREATE POLICY "Users can view their own payments" ON payments
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM bookings
+            WHERE bookings.id = booking_id
+            AND bookings.guest_id = auth.uid()
+        )
+        OR EXISTS (
+            SELECT 1 FROM profiles
+            WHERE profiles.id = auth.uid()
+            AND profiles.role IN ('admin', 'staff', 'manager')
+        )
+    );
+
+CREATE POLICY "Guests can create payments for their bookings" ON payments
+    FOR INSERT WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM bookings
+            WHERE bookings.id = booking_id
+            AND bookings.guest_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Staff and admin can update payments" ON payments
+    FOR UPDATE USING (
+        EXISTS (
+            SELECT 1 FROM profiles
+            WHERE profiles.id = auth.uid()
+            AND profiles.role IN ('admin', 'staff', 'manager')
+        )
+    );

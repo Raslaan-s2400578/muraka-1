@@ -76,7 +76,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Skip profile queries for auth routes
-  if (isAuthRoute) {
+  if (isAuthRoute || isPublicRoute) {
     return supabaseResponse
   }
 

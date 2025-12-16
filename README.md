@@ -1,133 +1,95 @@
-# Muraka Hotels - Maldives Booking System
+# Muraka Hotels - Hotel Management System
 
-Full-stack hotel booking system built with Next.js 15, Supabase, and Cloudflare Pages.
+**Students:**
+
+- Aminath Yaula Yaarid (S2400576)
+- Hawwa Saha Nasih (S2400566)
+- Milyaaf Abdul Sattar (S2300565)
+- Mohamed Raslaan Najeeb (S2400578)
+
+**Module:** UFCF8S-30-2 Advanced Software Development  
+**Institution:** UWE Bristol
+
+---
 
 ## Quick Start
 
-### 1. Install
+### 1. Install Dependencies
+
 ```bash
-git clone https://github.com/Raslaan-s2400578/muraka.git
-cd muraka
 npm install
 ```
 
 ### 2. Environment Setup
-Create `.env.local`:
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-```
 
-### 3. Database Setup
-Run SQL files in Supabase SQL Editor (in order):
-1. `supabase/schema.sql`
-2. Hotels & room types seeder
-3. `supabase/seed-accounts.sql`
-4. `supabase/migrations/20250125_implement_pricing_system.sql`
-5. `supabase/migrations/20250130_fix_pricing_data.sql`
-6. `supabase/seed-rooms.sql` (optional - 144 rooms)
+The `.env.local` file is included with Supabase credentials.
 
-### 4. Run Dev Server
+### 3. Run Application
+
 ```bash
 npm run dev
 ```
-Visit: http://localhost:3000
 
-## Test Accounts
+Open: http://localhost:3000
 
-All passwords: `Welcome@123`
+### 4. Login
 
-- **Admin**: admin@muraka.dev → /dashboard/admin
-- **Manager**: ahmed.manager@muraka.dev → /dashboard/manager
-- **Staff**: mohammed.staff@muraka.dev → /dashboard/staff
-- **Guest**: ali@muraka.dev → /dashboard/guest
+**Admin:** admin@muraka.dev / Welcome@123  
+**Staff:** mohammed.staff@muraka.dev / Welcome@123  
+**Guest:** ali@muraka.dev / Welcome@123
 
-See [ACCOUNTS_CREDENTIALS.md](ACCOUNTS_CREDENTIALS.md) for full list.
+See `ACCOUNTS_CREDENTIALS.md` for all test accounts.
 
-## Tech Stack
+---
 
-- **Frontend**: Next.js 15, React, Tailwind CSS, shadcn/ui
-- **Backend**: Next.js API routes
-- **Database**: Supabase (PostgreSQL)
-- **Auth**: Supabase Auth
-- **Deployment**: Cloudflare Pages
+## Technology Stack
 
-## Features
+- **Frontend:** Next.js 15, React 19, TypeScript, Tailwind CSS
+- **Backend:** Next.js API Routes
+- **Database:** Supabase (PostgreSQL)
+- **Authentication:** Supabase Auth
 
-### Guest
-- Search & book rooms
-- Manage bookings
-- Payment history
-- Leave reviews
+---
 
-### Staff
-- Booking management
-- Customer support
-- Payment tracking
-- Room status
+## Key Features
 
-### Manager
-- Analytics & occupancy
-- Revenue reports
-- Hotel management
-- Performance metrics
+**User Roles:** Admin, Manager, Staff, Guest (RBAC + RLS)  
+**Hotels:** 3 locations (Male, Laamu, Faafu)  
+**Rooms:** 144 rooms across 4 types  
+**Booking:** Search, book, cancel with dynamic pricing  
+**Pricing:** Peak/off-peak seasons, cancellation fees  
+**Services:** Breakfast, spa, airport transfers  
+**Security:** Row-level security, session management
 
-### Admin
-- User management
-- Complete system overview
-- Pricing & services
-- Room configuration
+---
 
 ## Project Structure
 
 ```
 muraka/
-├── app/                      # Next.js app
-│   ├── api/                 # API endpoints
-│   ├── (auth)/              # Login/signup
-│   └── dashboard/           # Role-based dashboards
-├── components/              # UI components
-├── lib/                     # Utilities
-│   ├── supabase/           # Database client
-│   └── pricing/            # Pricing calculations
-├── supabase/               # Database
-│   ├── schema.sql          # Tables & RLS
-│   ├── migrations/         # Migrations
-│   └── seed-*.sql          # Seeders
-└── types/                  # TypeScript types
+├── app/              # Next.js pages & API routes
+├── components/       # React components
+├── lib/              # Utilities & database clients
+├── supabase/         # Database schema & migrations
+└── types/            # TypeScript definitions
 ```
 
-## Database Schema
+---
 
-**Core Tables**:
-- `auth.users` - Supabase authentication
-- `profiles` - User profiles & roles (guest, staff, manager, admin)
-- `hotels` - 3 locations (Male, Laamu, Faafu)
-- `room_types` - 4 room types with pricing
-- `rooms` - 144 rooms (48 per location)
-- `bookings` - Guest reservations
-- `booking_rooms` - Room assignments
-- `services` - Ancillary services (transfer, food, wellness)
+## Database Tables
 
-**Pricing Tables**:
-- `peak_seasons` - Peak season pricing multipliers
-- `cancellation_fees` - Cancellation policy rules
-- `pricing_audit` - Price change history
+- `profiles` - User accounts (4 roles)
+- `hotels` - Hotel locations
+- `room_types` - Room categories & pricing
+- `rooms` - Room inventory
+- `bookings` - Reservations
+- `payments` - Payment records
+- `services` - Add-on services
+- `peak_seasons` - Pricing rules
+- `cancellation_fees` - Cancellation policy
 
-## Key Features
+---
 
-✅ RBAC with 4 roles and RLS policies
-✅ Pricing system with peak/off-peak rates
-✅ Cancellation policy (>14 days: free, 3-14 days: 50%, <72h: 100%)
-✅ 144 rooms with status tracking
-✅ Service add-ons (breakfast, spa, transfers)
-✅ Email authentication via Supabase
-✅ Role-based route protection
-✅ 18 test accounts pre-seeded
+## Setup Instructions
 
-## Documentation
-
-- [Session Summary](SESSION_SUMMARY.md) - Recent changes
-- [Pricing Details](PRICING.md) - Pricing structure
-- [Account Credentials](ACCOUNTS_CREDENTIALS.md) - Test accounts
+Detailed setup guide available in `SETUP_INSTRUCTIONS.txt`

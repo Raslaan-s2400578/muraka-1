@@ -1,72 +1,53 @@
-# Test Accounts - Credentials Reference
+# Test Account Credentials
 
 **All passwords:** `Welcome@123`
 
 ---
 
-## ADMIN (1)
+## Admin (1)
 
-| Email           | Name | Password    | Status   |
-| --------------- | ---- | ----------- | -------- |
-| test@muraka.dev | test | Welcome@123 | Existing |
-
----
-
-## MANAGERS (2)
-
-| Email                    | Name           | Password    | Status |
-| ------------------------ | -------------- | ----------- | ------ |
-| sara.manager@muraka.dev  | Sara Hassan    | Welcome@123 |        |
-| amira.manager@muraka.dev | Amira Abdullah | Welcome@123 |        |
+| Email            | Password    | Dashboard        |
+| ---------------- | ----------- | ---------------- |
+| admin@muraka.dev | Welcome@123 | /dashboard/admin |
 
 ---
 
-## STAFF (5)
+## Managers (2)
 
-| Email                   | Name          | Password    | Status   |
-| ----------------------- | ------------- | ----------- | -------- |
-| staff@muraka.dev        | Staff Member  | Welcome@123 | Existing |
-| aisha.staff@muraka.dev  | Aisha Ahmed   | Welcome@123 | Existing |
-| hassan.staff@muraka.dev | Hassan Omar   | Welcome@123 | Existing |
-| layla.staff@muraka.dev  | Layla Ibrahim | Welcome@123 | Existing |
-| omar.staff@muraka.dev   | Omar Khalil   | Welcome@123 | Existing |
+| Email                    | Password    | Dashboard          |
+| ------------------------ | ----------- | ------------------ |
+| ahmed.manager@muraka.dev | Welcome@123 | /dashboard/manager |
+| sara.manager@muraka.dev  | Welcome@123 | /dashboard/manager |
 
 ---
 
-## GUESTS (20)
+## Staff (5)
 
-| Email                   | Name            | Password    | Status |
-| ----------------------- | --------------- | ----------- | ------ |
-| ali@muraka.dev          | Ali Mohammed    | Welcome@123 |        |
-| sara.guest@muraka.dev   | Sara Abdullah   | Welcome@123 |        |
-| noor@muraka.dev         | Noor Hassan     | Welcome@123 |        |
-| zainab@muraka.dev       | Zainab Ahmed    | Welcome@123 |        |
-| karim@muraka.dev        | Karim Ibrahim   | Welcome@123 |        |
-| dina@muraka.dev         | Dina Saleh      | Welcome@123 |        |
-| rashid@muraka.dev       | Rashid Ahmed    | Welcome@123 |        |
-| hana@muraka.dev         | Hana Ibrahim    | Welcome@123 |        |
-| tariq@muraka.dev        | Tariq Hassan    | Welcome@123 |        |
-| leila@muraka.dev        | Leila Ahmed     | Welcome@123 |        |
-| amina@muraka.dev        | Amina Fatima    | Welcome@123 |        |
-| hassan.guest@muraka.dev | Hassan Mohammed | Welcome@123 |        |
-| fatima.guest@muraka.dev | Fatima Ibrahim  | Welcome@123 |        |
-| youssef@muraka.dev      | Youssef Ahmed   | Welcome@123 |        |
-| layla.guest@muraka.dev  | Layla Hassan    | Welcome@123 |        |
-| maryam@muraka.dev       | Maryam Abdullah | Welcome@123 |        |
-| ahmed.guest@muraka.dev  | Ahmed Khalil    | Welcome@123 |        |
-| nadia@muraka.dev        | Nadia Hassan    | Welcome@123 |        |
-| jamal@muraka.dev        | Jamal Ibrahim   | Welcome@123 |        |
-| maya@muraka.dev         | Maya Ahmed      | Welcome@123 |        |
+| Email                     | Password    | Dashboard        |
+| ------------------------- | ----------- | ---------------- |
+| mohammed.staff@muraka.dev | Welcome@123 | /dashboard/staff |
+| aisha.staff@muraka.dev    | Welcome@123 | /dashboard/staff |
+| hassan.staff@muraka.dev   | Welcome@123 | /dashboard/staff |
+| layla.staff@muraka.dev    | Welcome@123 | /dashboard/staff |
+| omar.staff@muraka.dev     | Welcome@123 | /dashboard/staff |
 
 ---
 
-## How to Seed
+## Guests (10)
 
-1. login from admin account
-2. go to users tab
-3. then add user
-4. make sure to select the correct role for each user
+| Email                 | Password    | Dashboard        |
+| --------------------- | ----------- | ---------------- |
+| ali@muraka.dev        | Welcome@123 | /dashboard/guest |
+| sara.guest@muraka.dev | Welcome@123 | /dashboard/guest |
+| noor@muraka.dev       | Welcome@123 | /dashboard/guest |
+| zainab@muraka.dev     | Welcome@123 | /dashboard/guest |
+| karim@muraka.dev      | Welcome@123 | /dashboard/guest |
+| dina@muraka.dev       | Welcome@123 | /dashboard/guest |
+| rashid@muraka.dev     | Welcome@123 | /dashboard/guest |
+| hana@muraka.dev       | Welcome@123 | /dashboard/guest |
+| tariq@muraka.dev      | Welcome@123 | /dashboard/guest |
+| leila@muraka.dev      | Welcome@123 | /dashboard/guest |
 
-## Testing
+---
 
-Login at: `http://localhost:3000/login`
+**Login URL:** http://localhost:3000/login

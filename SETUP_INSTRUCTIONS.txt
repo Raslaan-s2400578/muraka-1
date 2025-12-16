@@ -1,0 +1,320 @@
+=== MURAKA HOTEL MANAGEMENT SYSTEM - SETUP INSTRUCTIONS ===
+
+STUDENT INFORMATION:
+- Aminath Yaula Yaarid (S2400576)
+- Hawwa Saha Nasih (S2400566)
+- Milyaaf Abdul Sattar (S2300565)
+- Mohamed Raslaan Najeeb (S2400578)
+
+Module: UFCF8S-30-2 Advanced Software Development
+Institution: UWE Bristol
+Date: December 2025
+
+================================================================================
+PREREQUISITES
+================================================================================
+- Node.js 18+ installed (https://nodejs.org)
+- npm (comes with Node.js)
+- Internet connection (required for Supabase cloud database)
+- Modern web browser (Chrome, Firefox, Edge)
+
+================================================================================
+INSTALLATION STEPS
+================================================================================
+
+STEP 1: EXTRACT ZIP FILE
+-----------------------
+Extract the submitted ZIP file to your desired location.
+Example: C:\Projects\muraka
+
+STEP 2: INSTALL DEPENDENCIES
+---------------------------
+Open terminal/command prompt in the project folder and run:
+
+    npm install
+
+This will install all required packages listed in package.json.
+Installation may take 2-5 minutes depending on internet speed.
+
+STEP 3: ENVIRONMENT SETUP
+------------------------
+The project includes a .env.local file with Supabase credentials.
+
+IMPORTANT: The database is hosted on Supabase cloud and is already configured.
+No additional setup is needed - the .env.local file contains all necessary keys.
+
+If the .env.local file is missing, check TEACHER_CREDENTIALS.txt for the values.
+
+STEP 4: DATABASE SETUP
+--------------------
+The Supabase database is ALREADY SET UP and contains all necessary data.
+
+However, if you need to verify or reset the database, you can:
+1. Go to https://supabase.com/dashboard
+2. Login with credentials from TEACHER_CREDENTIALS.txt (if provided)
+3. Open SQL Editor
+4. Run the following files in order:
+   - supabase/schema.sql (creates tables)
+   - supabase/seed-accounts.sql (creates test users)
+   - supabase/migrations/20250125_implement_pricing_system.sql
+   - supabase/migrations/20250130_fix_pricing_data.sql
+   - supabase/migrations/20250202_create_payments_table.sql
+   - supabase/seed-rooms.sql (optional - adds 144 rooms)
+
+NOTE: This step is OPTIONAL. The database is already populated and ready to use.
+
+STEP 5: RUN THE APPLICATION
+--------------------------
+In the terminal, run:
+
+    npm run dev
+
+You should see output like:
+    ▲ Next.js 15.5.4
+    - Local:        http://localhost:3000
+    - Network:      http://192.168.x.x:3000
+
+STEP 6: ACCESS THE APPLICATION
+-----------------------------
+Open your web browser and navigate to:
+
+    http://localhost:3000
+
+The home page should load with the Muraka Hotels branding.
+
+================================================================================
+TEST ACCOUNTS
+================================================================================
+
+All test accounts use the same password: Welcome@123
+
+ROLE: ADMIN
+Email: admin@muraka.dev
+Access: http://localhost:3000/dashboard/admin
+Features: User management, full system overview, all permissions
+
+ROLE: MANAGER  
+Email: ahmed.manager@muraka.dev
+Access: http://localhost:3000/dashboard/manager
+Features: Analytics, revenue reports, hotel management
+
+ROLE: STAFF
+Email: mohammed.staff@muraka.dev
+Access: http://localhost:3000/dashboard/staff
+Features: Booking management, customer support, payment processing
+
+ROLE: GUEST
+Email: ali@muraka.dev
+Access: http://localhost:3000/dashboard/guest
+Features: Search & book rooms, manage bookings, view invoices
+
+For complete list of 18 test accounts, see ACCOUNTS_CREDENTIALS.md
+
+================================================================================
+KEY FEATURES TO TEST
+================================================================================
+
+1. GUEST FEATURES
+   - Room search by location, dates, and room type
+   - View room details and pricing
+   - Make bookings with multiple rooms
+   - View booking history
+   - Cancel bookings (with cancellation fees)
+   - Download invoices
+
+2. STAFF FEATURES
+   - View all bookings across hotels
+   - Manage guest check-in/check-out
+   - Process payments
+   - View customer information
+   - Update booking status
+   - View room availability
+
+3. MANAGER FEATURES
+   - Dashboard with occupancy analytics
+   - Revenue reports by hotel/room type
+   - Booking trends and patterns
+   - Peak season pricing overview
+   - Guest demographics
+
+4. ADMIN FEATURES
+   - User management (create, update, delete)
+   - Role assignment
+   - Hotel and room configuration
+   - System-wide reports
+   - Payment tracking
+
+5. PRICING SYSTEM
+   - Peak/off-peak season rates
+   - Automatic price calculation
+   - Cancellation policy enforcement:
+     * >14 days before: Free cancellation
+     * 3-14 days before: 50% of first night
+     * <72 hours before: 100% of first night
+     * No-show: 100% of entire booking
+   - Service add-ons (breakfast, spa, transfers)
+
+6. SECURITY FEATURES
+   - Role-based access control (RBAC)
+   - Row-level security (RLS) policies
+   - Secure authentication via Supabase
+   - Protected routes based on user role
+   - Session management
+
+================================================================================
+PROJECT STRUCTURE
+================================================================================
+
+muraka/
+├── app/                          # Next.js App Router
+│   ├── (auth)/                  # Login/Signup pages
+│   ├── api/                     # API endpoints
+│   ├── dashboard/               # Role-based dashboards
+│   │   ├── admin/              # Admin dashboard
+│   │   ├── manager/            # Manager dashboard
+│   │   ├── staff/              # Staff dashboard
+│   │   └── guest/              # Guest dashboard
+│   ├── booking/                # Booking flow
+│   ├── rooms/                  # Room listings
+│   └── search/                 # Search page
+├── components/                  # React components
+│   ├── ui/                     # Shadcn UI components
+│   └── pricing/                # Pricing-related components
+├── lib/                        # Utility functions
+│   ├── supabase/               # Supabase client
+│   ├── pricing/                # Pricing calculator
+│   └── email/                  # Email templates
+├── hooks/                      # Custom React hooks
+├── types/                      # TypeScript type definitions
+├── supabase/                   # Database schema and migrations
+│   ├── schema.sql             # Main database schema
+│   ├── migrations/            # Database migrations
+│   └── seed-*.sql             # Data seeding scripts
+└── public/                     # Static assets
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+PROBLEM: "Module not found" or package errors
+SOLUTION: Delete node_modules folder and package-lock.json, then run:
+          npm install
+
+PROBLEM: Blank page or React errors
+SOLUTION: Check browser console (F12) for errors
+          Ensure Node.js version is 18 or higher: node --version
+
+PROBLEM: "Invalid API key" or Supabase errors
+SOLUTION: Verify .env.local file exists and contains correct keys
+          Check that NEXT_PUBLIC_SUPABASE_URL and keys are set
+
+PROBLEM: No data showing in dashboard
+SOLUTION: Ensure database migrations have been run (see Step 4)
+          Check internet connection (Supabase is cloud-hosted)
+
+PROBLEM: Login fails with valid credentials
+SOLUTION: Check that seed-accounts.sql was run in Supabase
+          Verify email confirmation is not required in Supabase settings
+
+PROBLEM: Port 3000 already in use
+SOLUTION: Run: npm run dev -- -p 3001
+          This will start the app on port 3001 instead
+
+PROBLEM: TypeScript errors during build
+SOLUTION: This is a development build - type errors are warnings only
+          The app will still run. To fix, check the specific error message.
+
+================================================================================
+TECHNICAL SPECIFICATIONS
+================================================================================
+
+FRONTEND:
+- Next.js 15 (App Router)
+- React 19
+- TypeScript
+- Tailwind CSS
+- Shadcn UI components
+- GSAP animations
+- React Hook Form with Zod validation
+
+BACKEND:
+- Next.js API Routes
+- Supabase (PostgreSQL database)
+- Supabase Authentication
+- Row-level Security (RLS)
+
+HOSTING:
+- Frontend: Cloudflare Pages / Vercel
+- Database: Supabase Cloud
+- Authentication: Supabase Auth
+
+SECURITY:
+- Role-based access control (4 roles)
+- RLS policies on all tables
+- Secure session management
+- Protected API routes
+- Input validation with Zod
+
+DATABASE:
+- PostgreSQL (via Supabase)
+- 10+ tables with relationships
+- Audit logging
+- Automatic timestamps
+- Foreign key constraints
+
+================================================================================
+ADDITIONAL DOCUMENTATION
+================================================================================
+
+README.md                    - Project overview and quick start
+ACCOUNTS_CREDENTIALS.md      - Complete list of test accounts
+BOOKING_SEEDER_GUIDE.md      - Booking data seeding instructions
+npm-packages.txt             - Full list of installed packages
+package.json                 - Project dependencies
+
+For UML diagrams, testing evidence, and reports, see separate PDF submissions:
+- Part-I-UML-Diagrams.pdf
+- Part-II-Agile-Report.pdf
+- Part-II-Testing-Evidence.pdf
+- Individual-Report-S2400576.pdf (Yaula)
+- Individual-Report-S2400566.pdf (Saha)
+- Individual-Report-S2300565.pdf (Milyaaf)
+- Individual-Report-S2400578.pdf (Raslaan)
+
+================================================================================
+SYSTEM REQUIREMENTS MET
+================================================================================
+
+✓ Multiple hotel locations (3 properties)
+✓ Room types and pricing (4 room types)
+✓ Room availability tracking
+✓ Booking system with date selection
+✓ Cancellation policy enforcement
+✓ Additional services (breakfast, spa, transfers)
+✓ Multiple rooms per booking
+✓ Role-based access control (4 roles)
+✓ Guest portal with booking history
+✓ Staff panel for operations
+✓ Manager analytics and reports
+✓ Admin user management
+✓ Search functionality
+✓ Payment processing
+✓ Check-in/check-out system
+✓ Secure authentication
+✓ Database security (RLS)
+✓ Responsive UI design
+
+================================================================================
+SUPPORT
+================================================================================
+
+If you encounter any issues not covered in this guide:
+1. Check browser console for error messages
+2. Verify all prerequisites are installed
+3. Ensure stable internet connection
+4. Check that all steps were followed in order
+
+For code-specific questions, all source files include student information
+in the header comments.
+
+================================================================================

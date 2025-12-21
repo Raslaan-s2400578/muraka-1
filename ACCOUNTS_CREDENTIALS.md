@@ -6,9 +6,9 @@
 
 ## Admin (1)
 
-| Email               | Password    | Dashboard        |
-| ------------------- | ----------- | ---------------- |
-| sysadmin@muraka.dev | Welcome@123 | /dashboard/admin |
+| Email          | Password    | Dashboard        |
+| -------------- | ----------- | ---------------- |
+| ibbe@email.com | Welcome@123 | /dashboard/admin |
 
 ---
 

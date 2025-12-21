@@ -33,7 +33,7 @@ const playfair = Playfair_Display({
 
 export const metadata: Metadata = {
   title: "Muraka Hotels - Luxury Paradise in the Maldives",
-  description: "Experience luxury accommodations across three stunning locations in the Maldives. Book your perfect getaway at Muraka Male, Laamu, and Faafu.",
+  description: "Experience luxury accommodations across three stunning locations in the Maldives. Book your perfect getaway at Muraka Male, Laamu, and Faafu.", 
 };
 
 export default function RootLayout({

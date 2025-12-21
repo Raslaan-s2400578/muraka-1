@@ -334,7 +334,7 @@ export default function Home() {
       })
     })
 
-    // Parallax hero
+    // Parallax heros
     gsap.to('.hero-content', {
       y: 100,
       opacity: 0.8,

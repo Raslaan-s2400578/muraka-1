@@ -38,9 +38,10 @@ interface Booking {
   num_guests: number
   phone?: string
   special_requests?: string
+  guest_id?: string
   guest: {
     full_name: string
-    email: string
+    email?: string
   }
   hotel: {
     name: string
@@ -193,17 +194,22 @@ export default function BookingsPage() {
         `)
 
       // Get all guest IDs from bookings, then fetch their profiles
-      const guestIds = [...new Set(bookingsData.map(b => b.guest_id))]
+      const guestIds = [...new Set(bookingsData.map(b => b.guest_id).filter(Boolean))]
       let profilesData: any[] = []
 
       if (guestIds.length > 0) {
-        const { data: profiles } = await supabase
+        const { data: profiles, error: profilesError } = await supabase
           .from('profiles')
-          .select('id, full_name, email, role')
+          .select('id, full_name, role')
           .in('id', guestIds)
 
+        if (profilesError) {
+          console.error('Error fetching profiles:', profilesError)
+        }
         profilesData = profiles || []
-        console.log('Profiles fetched for guests:', profilesData.length)
+        console.log('Profiles fetched for guests:', profilesData.length, 'out of', guestIds.length, 'guest IDs')
+        console.log('Guest IDs requested:', guestIds.slice(0, 5))
+        console.log('Profiles received:', profilesData.slice(0, 5))
       }
 
       // Create lookup maps
@@ -227,7 +233,7 @@ export default function BookingsPage() {
 
       // Transform bookings with joined data
       const transformedBookings = bookingsData.map((booking: any, index: number) => {
-        const guest = profilesMap.get(booking.guest_id) || { full_name: 'Unknown', email: '', id: '' }
+        const guest = profilesMap.get(booking.guest_id) || { full_name: 'Unknown Guest', id: booking.guest_id }
         const hotel = hotelsMap.get(booking.hotel_id) || { name: 'Unknown', location: '', id: '' }
         const bookingRooms = bookingRoomsMap.get(booking.id) || []
 
@@ -1179,8 +1185,10 @@ export default function BookingsPage() {
                         </TableCell>
                         <TableCell>
                           <div>
-                            <p className="font-medium text-gray-900">{booking.guest.full_name}</p>
-                            <p className="text-sm text-gray-500">{booking.guest.email}</p>
+                            <p className="font-medium text-gray-900">{booking.guest?.full_name || 'Unknown Guest'}</p>
+                            {booking.guest?.email && (
+                              <p className="text-sm text-gray-500">{booking.guest.email}</p>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>

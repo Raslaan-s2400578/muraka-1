@@ -10,10 +10,20 @@
  * Institution: UWE Bristol
  */
 
+
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
+
+  // Allow all auth routes without any checks
+  if (pathname.startsWith('/login') || 
+      pathname.startsWith('/signup') || 
+      pathname === '/') {
+    return NextResponse.next()
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -41,84 +51,46 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  let user = null
-  try {
-    const {
-      data: { user: authUser },
-    } = await supabase.auth.getUser()
-    user = authUser
-  } catch (error) {
-    console.error('Auth error:', error)
-    // Continue without user if auth fails
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  // If not logged in and trying to access dashboard, redirect to login
+  if (!user && pathname.startsWith('/dashboard')) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    return NextResponse.redirect(url)
   }
 
-  const { pathname } = request.nextUrl
-
-  // Skip middleware for API routes
-  if (pathname.startsWith('/api/')) {
-    return supabaseResponse
-  }
-
-  // Public routes that don't require authentication
-  const publicRoutes = ['/', '/login', '/signup', '/search']
-  const isPublicRoute = publicRoutes.includes(pathname) || pathname.startsWith('/search')
-
-  // Auth routes that should redirect to dashboard if user is logged in
-  const authRoutes = ['/login', '/signup']
-  const isAuthRoute = authRoutes.includes(pathname)
-
-  if (isAuthRoute && user) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
-  }
-
-  if (!isPublicRoute && !user) {
-    return NextResponse.redirect(new URL('/login', request.url))
-  }
-
-  // Skip profile queries for auth routes
-  if (isAuthRoute || isPublicRoute) {
-    return supabaseResponse
-  }
-
-  // Role-based access control for dashboard routes
-  if (pathname.startsWith('/dashboard') && user) {
+  // If logged in, fetch profile for role-based routing
+  if (user && pathname.startsWith('/dashboard')) {
     try {
-      const { data: profile, error } = await supabase
+      const { data: profile } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', user.id)
         .single()
 
-      if (error) {
-        console.error('Profile query error:', error)
-        // If there's an error fetching the profile, redirect to guest dashboard
-        return NextResponse.redirect(new URL('/dashboard/guest', request.url))
-      }
+      if (profile) {
+        const roleRoutes: Record<string, string> = {
+          admin: '/dashboard/admin',
+          manager: '/dashboard/manager',
+          staff: '/dashboard/staff',
+          guest: '/dashboard/guest',
+        }
 
-      const userRole = profile?.role || 'guest'
-
-      // Define role-based route access
-      const roleRoutes = {
-        guest: ['/dashboard/guest'],
-        staff: ['/dashboard/staff', '/dashboard/guest'],
-        manager: ['/dashboard/manager', '/dashboard/staff', '/dashboard/guest'],
-        admin: ['/dashboard/admin', '/dashboard/manager', '/dashboard/staff', '/dashboard/guest'],
-      }
-
-      const allowedRoutes = roleRoutes[userRole as keyof typeof roleRoutes] || []
-
-      // Check if the current path is allowed for the user's role
-      const isAllowed = allowedRoutes.some(route => pathname.startsWith(route))
-
-      if (!isAllowed) {
-        // Redirect to appropriate dashboard based on role
-        const defaultRoute = allowedRoutes[0] || '/dashboard/guest'
-        return NextResponse.redirect(new URL(defaultRoute, request.url))
+        const expectedRoute = roleRoutes[profile.role]
+        
+        // Only redirect if they're on the wrong dashboard
+        if (expectedRoute && !pathname.startsWith(expectedRoute)) {
+          const url = request.nextUrl.clone()
+          url.pathname = expectedRoute
+          return NextResponse.redirect(url)
+        }
       }
     } catch (error) {
-      console.error('Middleware error:', error)
-      // If there's an error fetching the profile, redirect to guest dashboard
-      return NextResponse.redirect(new URL('/dashboard/guest', request.url))
+      console.error('Profile fetch error:', error)
+      // Don't block the request if profile fetch fails
     }
   }
 
@@ -129,5 +101,4 @@ export const config = {
   matcher: [
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
-  // Exclude auth routes from full middleware processing
 }

@@ -356,7 +356,7 @@ Payment ID: ${payment.id}
 Transaction ID: ${payment.transaction_id}
 Date: ${new Date(payment.payment_date).toLocaleDateString()}
 
-Hotel: ${payment.booking.hotel.name}
+Hotel: ${payment.booking.hotel?.name || 'Unknown Hotel'}
 Amount: $${payment.amount.toLocaleString()}
 Payment Method: ${payment.payment_method.replace('_', ' ')}
 Status: ${payment.status}
@@ -570,8 +570,8 @@ Thank you for your business!
                         <CardContent className="p-6">
                           <div className="flex justify-between items-start mb-4">
                             <div>
-                              <h4 className="font-semibold text-lg">{booking.hotel.name}</h4>
-                              <p className="text-blue-600 text-sm">{booking.hotel.location} Atoll</p>
+                              <h4 className="font-semibold text-lg">{booking.hotel?.name || 'Unknown Hotel'}</h4>
+                              <p className="text-blue-600 text-sm">{booking.hotel?.location || 'Unknown'} Atoll</p>
                               {booking.booking_rooms[0] && (
                                 <p className="text-gray-600 text-sm">
                                   {booking.booking_rooms[0].room.room_type.name} - Room {booking.booking_rooms[0].room.room_number}
@@ -699,8 +699,8 @@ Thank you for your business!
                           <TableRow key={booking.id}>
                             <TableCell>
                               <div>
-                                <p className="font-medium">{booking.hotel.name}</p>
-                                <p className="text-sm text-gray-500">{booking.hotel.location}</p>
+                                <p className="font-medium">{booking.hotel?.name || 'Unknown Hotel'}</p>
+                                <p className="text-sm text-gray-500">{booking.hotel?.location || 'Unknown'}</p>
                               </div>
                             </TableCell>
                             <TableCell>
@@ -785,7 +785,7 @@ Thank you for your business!
                           <TableCell className="font-medium">
                             {format(new Date(payment.payment_date), 'MMM dd, yyyy')}
                           </TableCell>
-                          <TableCell>{payment.booking.hotel.name}</TableCell>
+                          <TableCell>{payment.booking.hotel?.name || 'Unknown Hotel'}</TableCell>
                           <TableCell className="font-mono text-sm">{payment.transaction_id}</TableCell>
                           <TableCell className="capitalize">
                             {payment.payment_method.replace('_', ' ')}

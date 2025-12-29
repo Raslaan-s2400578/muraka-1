@@ -42,7 +42,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="lenis">
+    <html lang="en" className="lenis" data-scroll-behavior="smooth">
       <head>
         <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8196212883156501"
           crossOrigin="anonymous"></script>

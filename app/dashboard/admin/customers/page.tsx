@@ -28,7 +28,7 @@ import { Users, Star, RefreshCw, Mail, Phone, MapPin, Calendar, DollarSign, Sear
 interface Customer {
   id: string
   full_name: string
-  email: string
+  email?: string
   phone: string | null
   role: string
   created_at: string
@@ -90,10 +90,10 @@ export default function CustomersPage() {
     try {
       setLoading(true)
 
-      // Get all profiles
+      // Get all profiles (email is in auth.users, not profiles)
       const { data: customersData, error: customersError } = await supabase
         .from('profiles')
-        .select('id, full_name, email, phone, role, created_at')
+        .select('id, full_name, phone, role, created_at')
         .order('created_at', { ascending: false })
 
       if (customersError) {
@@ -153,8 +153,7 @@ export default function CustomersPage() {
 
   const filteredCustomers = customers.filter(customer => {
     const matchesSearch =
-      customer.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      customer.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      customer.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       customer.id.toLowerCase().includes(searchQuery.toLowerCase())
 
     const matchesType =
@@ -333,7 +332,7 @@ export default function CustomersPage() {
                     <div className="space-y-3 mb-4 pb-4 border-b border-gray-200">
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <Mail className="w-4 h-4 text-gray-400" />
-                        <span className="truncate">{customer.email}</span>
+                        <span className="truncate">{customer.email || 'No email available'}</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <Phone className="w-4 h-4 text-gray-400" />

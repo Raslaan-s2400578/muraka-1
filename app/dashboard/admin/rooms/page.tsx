@@ -32,14 +32,30 @@ import { Bed, DollarSign, Building, Search, ArrowLeft } from 'lucide-react'
 interface Room {
   id: string
   room_number: string
-  room_type: string
-  price_per_night: number
+  room_type_id: string
+  room_type?: {
+    id: string
+    name: string
+    capacity: number
+    price_off_peak: number
+    price_peak: number
+  }
+  status: string
   is_available: boolean
   hotel_id: string
   hotel?: {
     name: string
     location: string
   }
+}
+
+interface RoomType {
+  id: string
+  name: string
+  hotel_id: string
+  capacity: number
+  price_off_peak: number
+  price_peak: number
 }
 
 interface Hotel {
@@ -58,6 +74,7 @@ interface Profile {
 function RoomsPageContent() {
   const [rooms, setRooms] = useState<Room[]>([])
   const [hotels, setHotels] = useState<Hotel[]>([])
+  const [roomTypes, setRoomTypes] = useState<RoomType[]>([])
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeView] = useState('hotels')
@@ -70,9 +87,8 @@ function RoomsPageContent() {
   const [formData, setFormData] = useState({
     hotel_id: '',
     room_number: '',
-    room_type: 'Standard',
-    price_per_night: 100,
-    is_available: true
+    room_type_id: '',
+    status: 'Available'
   })
 
   const router = useRouter()
@@ -116,6 +132,7 @@ function RoomsPageContent() {
       setProfile(profile)
       await loadRooms()
       await loadHotels()
+      await loadRoomTypes()
     } catch (err) {
       console.error('Auth error:', err)
       router.push('/login')
@@ -128,14 +145,19 @@ function RoomsPageContent() {
 
       const { data: roomsData, error: roomsError } = await supabase
         .from('rooms')
-        .select('*, hotel:hotels(name, location)')
+        .select('*, hotel:hotels(name, location), room_type:room_types(id, name, capacity, price_off_peak, price_peak)')
         .order('room_number')
 
       if (roomsError) {
         console.error('Rooms error:', roomsError)
         setRooms([])
       } else {
-        setRooms(roomsData || [])
+        // Transform data to add computed is_available field from status
+        const transformedRooms = (roomsData || []).map(room => ({
+          ...room,
+          is_available: room.status === 'Available'
+        }))
+        setRooms(transformedRooms)
       }
     } catch (err) {
       console.error('Loading error:', err);
@@ -147,6 +169,19 @@ if (err instanceof Error) {
 }
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadRoomTypes = async () => {
+    try {
+      const { data: roomTypesData } = await supabase
+        .from('room_types')
+        .select('id, name, hotel_id, capacity, price_off_peak, price_peak')
+        .order('name')
+
+      setRoomTypes(roomTypesData || [])
+    } catch (err) {
+      console.error('Room types error:', err)
     }
   }
 
@@ -184,8 +219,8 @@ if (err instanceof Error) {
         setError('Room number is required')
         return
       }
-      if (formData.price_per_night <= 0) {
-        setError('Price must be greater than 0')
+      if (!formData.room_type_id) {
+        setError('Please select a room type')
         return
       }
 
@@ -196,9 +231,8 @@ if (err instanceof Error) {
           {
             hotel_id: formData.hotel_id,
             room_number: formData.room_number.trim(),
-            room_type: formData.room_type,
-            price_per_night: formData.price_per_night,
-            is_available: formData.is_available
+            room_type_id: formData.room_type_id,
+            status: formData.status
           }
         ])
         .select()
@@ -212,9 +246,8 @@ if (err instanceof Error) {
       setFormData({
         hotel_id: '',
         room_number: '',
-        room_type: 'Standard',
-        price_per_night: 100,
-        is_available: true
+        room_type_id: '',
+        status: 'Available'
       })
 
       // Reload rooms
@@ -242,9 +275,9 @@ if (err instanceof Error) {
 
   const filteredRooms = rooms.filter(room => {
     const matchesSearch =
-      room.room_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      room.room_type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      room.hotel?.name.toLowerCase().includes(searchQuery.toLowerCase())
+      room.room_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      room.room_type?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      room.hotel?.name?.toLowerCase().includes(searchQuery.toLowerCase())
 
     const matchesHotel = hotelFilter === 'all' || room.hotel_id === hotelFilter
 
@@ -255,7 +288,7 @@ if (err instanceof Error) {
     total: filteredRooms.length,
     available: filteredRooms.filter(r => r.is_available).length,
     occupied: filteredRooms.filter(r => !r.is_available).length,
-    avgPrice: filteredRooms.length > 0 ? Math.round(filteredRooms.reduce((sum, r) => sum + r.price_per_night, 0) / filteredRooms.length) : 0
+    avgPrice: filteredRooms.length > 0 ? Math.round(filteredRooms.reduce((sum, r) => sum + (r.room_type?.price_off_peak || 0), 0) / filteredRooms.length) : 0
   }
 
   if (loading) {
@@ -344,7 +377,7 @@ if (err instanceof Error) {
                     <Label htmlFor="hotel">Hotel *</Label>
                     <Select
                       value={formData.hotel_id}
-                      onValueChange={(value) => setFormData({ ...formData, hotel_id: value })}
+                      onValueChange={(value) => setFormData({ ...formData, hotel_id: value, room_type_id: '' })}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select hotel" />
@@ -372,47 +405,41 @@ if (err instanceof Error) {
                   <div className="grid gap-2">
                     <Label htmlFor="room_type">Room Type *</Label>
                     <Select
-                      value={formData.room_type}
-                      onValueChange={(value) => setFormData({ ...formData, room_type: value })}
+                      value={formData.room_type_id}
+                      onValueChange={(value) => setFormData({ ...formData, room_type_id: value })}
+                      disabled={!formData.hotel_id}
                     >
                       <SelectTrigger>
-                        <SelectValue />
+                        <SelectValue placeholder={formData.hotel_id ? "Select room type" : "Select hotel first"} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Standard">Standard</SelectItem>
-                        <SelectItem value="Deluxe">Deluxe</SelectItem>
-                        <SelectItem value="Suite">Suite</SelectItem>
-                        <SelectItem value="Presidential">Presidential</SelectItem>
-                        <SelectItem value="Ocean View">Ocean View</SelectItem>
-                        <SelectItem value="Beach Villa">Beach Villa</SelectItem>
-                        <SelectItem value="Water Villa">Water Villa</SelectItem>
+                        {roomTypes
+                          .filter(rt => rt.hotel_id === formData.hotel_id)
+                          .map((roomType) => (
+                            <SelectItem key={roomType.id} value={roomType.id}>
+                              {roomType.name} (${roomType.price_off_peak} - ${roomType.price_peak})
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div className="grid gap-2">
-                    <Label htmlFor="price">Price per Night (USD) *</Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      min="0"
-                      step="10"
-                      value={formData.price_per_night}
-                      onChange={(e) => setFormData({ ...formData, price_per_night: parseFloat(e.target.value) || 0 })}
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <input
-                      id="available"
-                      type="checkbox"
-                      checked={formData.is_available}
-                      onChange={(e) => setFormData({ ...formData, is_available: e.target.checked })}
-                      className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
-                    />
-                    <Label htmlFor="available" className="cursor-pointer">
-                      Available for booking
-                    </Label>
+                    <Label htmlFor="status">Status *</Label>
+                    <Select
+                      value={formData.status}
+                      onValueChange={(value) => setFormData({ ...formData, status: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Available">Available</SelectItem>
+                        <SelectItem value="Occupied">Occupied</SelectItem>
+                        <SelectItem value="Cleaning">Cleaning</SelectItem>
+                        <SelectItem value="Out of Service">Out of Service</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
@@ -551,9 +578,9 @@ if (err instanceof Error) {
                             <p className="text-sm text-gray-500">{room.hotel?.location}</p>
                           </div>
                         </TableCell>
-                        <TableCell className="text-gray-700">{room.room_type}</TableCell>
+                        <TableCell className="text-gray-700">{room.room_type?.name || 'Unknown'}</TableCell>
                         <TableCell className="font-semibold text-gray-900">
-                          ${room.price_per_night}
+                          ${room.room_type?.price_off_peak || 0}
                         </TableCell>
                         <TableCell>
                           <Badge

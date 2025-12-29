@@ -14,22 +14,17 @@
 
 ## Managers (2)
 
-| Email                    | Password    | Dashboard          |
-| ------------------------ | ----------- | ------------------ |
-| ahmed.manager@muraka.dev | Welcome@123 | /dashboard/manager |
-| manager@muraka.dev       | Welcome@123 | /dashboard/manager |
+| Email              | Password    | Dashboard          |
+| ------------------ | ----------- | ------------------ |
+| manager@muraka.dev | Welcome@123 | /dashboard/manager |
 
 ---
 
 ## Staff (5)
 
-| Email                     | Password    | Dashboard        |
-| ------------------------- | ----------- | ---------------- |
-| mohammed.staff@muraka.dev | Welcome@123 | /dashboard/staff |
-| aisha.staff@muraka.dev    | Welcome@123 | /dashboard/staff |
-| hassan.staff@muraka.dev   | Welcome@123 | /dashboard/staff |
-| layla.staff@muraka.dev    | Welcome@123 | /dashboard/staff |
-| omar.staff@muraka.dev     | Welcome@123 | /dashboard/staff |
+| Email            | Password    | Dashboard        |
+| ---------------- | ----------- | ---------------- |
+| staff@muraka.dev | Welcome@123 | /dashboard/staff |
 
 ---
 

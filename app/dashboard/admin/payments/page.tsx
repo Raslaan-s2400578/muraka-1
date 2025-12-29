@@ -30,7 +30,9 @@ import { CreditCard, Clock, CheckCircle, XCircle, Download, Search, Eye, Edit, T
 
 interface Payment {
   id: string
+  display_id: string
   booking_id: string
+  display_booking_id: string
   amount: number
   status: string
   payment_method: string
@@ -129,12 +131,16 @@ export default function PaymentsPage() {
         return
       }
 
-      // Fetch guest data
+      // Fetch guest data (email will be available after running migration)
       const guestIds = [...new Set(paymentsData.map((p: any) => p.bookings?.guest_id).filter(Boolean))]
-      const { data: guests } = await supabase
+      const { data: guests, error: guestsError } = await supabase
         .from('profiles')
         .select('id, full_name, email')
         .in('id', guestIds)
+
+      if (guestsError) {
+        console.error('Error fetching guest profiles:', guestsError)
+      }
 
       const guestMap = new Map(guests?.map(g => [g.id, g]) || [])
 
@@ -142,15 +148,17 @@ export default function PaymentsPage() {
       const transformedPayments: Payment[] = paymentsData.map((payment: any) => {
         const guest = guestMap.get(payment.bookings?.guest_id)
         return {
-          id: payment.id.slice(0, 13).toUpperCase(),
-          booking_id: payment.booking_id.slice(0, 8),
+          id: payment.id,
+          display_id: payment.id.slice(0, 13).toUpperCase(),
+          booking_id: payment.booking_id,
+          display_booking_id: payment.booking_id?.slice(0, 8) || 'N/A',
           amount: payment.amount,
           status: payment.status,
           payment_method: payment.payment_method,
           transaction_id: payment.transaction_id || 'N/A',
           created_at: payment.payment_date || payment.created_at,
-          customer_name: guest?.full_name || 'Unknown',
-          customer_email: guest?.email || 'unknown@example.com'
+          customer_name: guest?.full_name || 'Unknown Guest',
+          customer_email: guest?.email || 'N/A' // Email from profiles table
         }
       })
 
@@ -240,7 +248,7 @@ export default function PaymentsPage() {
 
   const filteredPayments = payments.filter(payment => {
     const matchesSearch =
-      payment.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      payment.display_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       payment.transaction_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       payment.customer_name.toLowerCase().includes(searchQuery.toLowerCase())
 
@@ -407,7 +415,7 @@ export default function PaymentsPage() {
                       <TableRow key={payment.id} className="border-b border-gray-100">
                         <TableCell>
                           <div>
-                            <p className="font-medium text-gray-900">{payment.id}</p>
+                            <p className="font-medium text-gray-900">{payment.display_id}</p>
                             <p className="text-xs text-gray-500 font-mono">{payment.transaction_id}</p>
                           </div>
                         </TableCell>
@@ -418,7 +426,7 @@ export default function PaymentsPage() {
                           </div>
                         </TableCell>
                         <TableCell className="font-mono text-sm text-gray-900">
-                          #{payment.booking_id}
+                          #{payment.display_booking_id}
                         </TableCell>
                         <TableCell className="font-semibold text-gray-900">
                           ${payment.amount.toLocaleString()} USD
@@ -497,7 +505,7 @@ export default function PaymentsPage() {
             <div className="space-y-4">
               <div>
                 <Label className="text-sm text-gray-500">Payment ID</Label>
-                <p className="font-medium">{selectedPayment.id}</p>
+                <p className="font-medium">{selectedPayment.display_id}</p>
               </div>
               <div>
                 <Label className="text-sm text-gray-500">Transaction ID</Label>
@@ -510,7 +518,7 @@ export default function PaymentsPage() {
               </div>
               <div>
                 <Label className="text-sm text-gray-500">Booking ID</Label>
-                <p className="font-mono">#{selectedPayment.booking_id}</p>
+                <p className="font-mono">#{selectedPayment.display_booking_id}</p>
               </div>
               <div>
                 <Label className="text-sm text-gray-500">Amount</Label>
@@ -605,7 +613,7 @@ export default function PaymentsPage() {
           </DialogHeader>
           {selectedPayment && (
             <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-600">Payment ID: {selectedPayment.id}</p>
+              <p className="text-sm text-gray-600">Payment ID: {selectedPayment.display_id}</p>
               <p className="text-sm text-gray-600">Amount: ${selectedPayment.amount.toLocaleString()}</p>
               <p className="text-sm text-gray-600">Customer: {selectedPayment.customer_name}</p>
             </div>

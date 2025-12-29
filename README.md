@@ -34,10 +34,6 @@ Open: http://localhost:3000
 
 ### 4. Login
 
-**Admin:** admin@muraka.dev / Welcome@123  
-**Staff:** mohammed.staff@muraka.dev / Welcome@123  
-**Guest:** ali@muraka.dev / Welcome@123
-
 See `ACCOUNTS_CREDENTIALS.md` for all test accounts.
 
 ---

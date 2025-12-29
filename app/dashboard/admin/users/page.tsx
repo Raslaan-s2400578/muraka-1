@@ -27,6 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { UserPlus, Trash2, Shield, UserCog, Users as UsersIcon, Edit2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface Profile {
   id: string
@@ -154,6 +155,11 @@ export default function UsersPage() {
       // Reload users
       await loadUsers()
 
+      // Show success toast
+      toast.success('User created successfully', {
+        description: `${formData.full_name} has been added to the system`
+      })
+
       // Reset form and close dialog
       setFormData({
         full_name: '',
@@ -165,6 +171,9 @@ export default function UsersPage() {
     } catch (err: any) {
       console.error('Create user error:', err)
       setError(err.message || 'Failed to create user')
+      toast.error('Failed to create user', {
+        description: err.message || 'An error occurred while creating the user'
+      })
     } finally {
       setCreating(false)
     }
@@ -213,20 +222,31 @@ export default function UsersPage() {
     if (!selectedUser) return
 
     try {
-      // Delete user profile (auth user will cascade delete)
-      const { error } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', selectedUser.id)
+      // Call admin API to delete user (handles both auth.users and profiles)
+      const response = await fetch('/api/admin/delete-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: selectedUser.id })
+      })
 
-      if (error) throw error
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to delete user')
+      }
+
+      toast.success('User deleted successfully', {
+        description: `${selectedUser.full_name} has been removed from the system`
+      })
 
       await loadUsers()
       setDeleteDialogOpen(false)
       setSelectedUser(null)
-    } catch (err) {
+    } catch (err: any) {
       console.error('Delete error:', err)
-      alert('Failed to delete user')
+      toast.error('Failed to delete user', {
+        description: err.message || 'An error occurred while deleting the user'
+      })
     }
   }
 

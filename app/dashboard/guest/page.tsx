@@ -153,37 +153,108 @@ function GuestDashboardContent() {
         phone: profileData.phone || ''
       })
 
-      // Load user bookings with hotel data
+      // Load user bookings first
       const { data: bookingsData, error: bookingsError } = await supabase
         .from('bookings')
         .select(`
           *,
-          hotel:hotels(
-            id,
-            name,
-            location,
-            address
-          ),
           booking_rooms(
-            room:rooms(
+            room:rooms!inner(
               room_number,
-              room_type:room_types(name, capacity)
+              hotel_id,
+              room_type:room_types!inner(name, capacity)
             )
           ),
           booking_services(
             quantity,
-            service:services(name, price)
+            service:services!inner(name, price)
           )
         `)
         .eq('guest_id', userId)
         .order('created_at', { ascending: false })
 
       if (bookingsError) {
+        console.error('Bookings query error:', bookingsError)
         throw bookingsError
       }
 
-      // Set bookings with hotel data already included from the query
-      setBookings(bookingsData || [])
+      // Fetch hotel data separately (to avoid RLS issues with joins)
+      if (bookingsData && bookingsData.length > 0) {
+        // Get unique hotel IDs from both booking.hotel_id and rooms.hotel_id
+        const hotelIdsFromBookings = bookingsData
+          .map(b => b.hotel_id)
+          .filter(Boolean)
+        
+        const hotelIdsFromRooms = bookingsData
+          .flatMap(b => b.booking_rooms?.map((br: any) => {
+            const room = Array.isArray(br.room) ? br.room[0] : br.room
+            return room?.hotel_id
+          }).filter(Boolean) || [])
+        
+        const allHotelIds = [...new Set([...hotelIdsFromBookings, ...hotelIdsFromRooms])]
+
+        const { data: hotelsData } = await supabase
+          .from('hotels')
+          .select('id, name, location, address')
+          .in('id', allHotelIds)
+
+        const hotelMap = new Map(hotelsData?.map(h => [h.id, h]) || [])
+
+        // Transform bookings with hotel data
+        const transformedBookings = bookingsData.map((booking: any) => {
+          // Get hotel from booking.hotel_id or from first room's hotel_id
+          const hotelId = booking.hotel_id || 
+            (booking.booking_rooms?.[0] && 
+             (Array.isArray(booking.booking_rooms[0].room) 
+               ? booking.booking_rooms[0].room[0]?.hotel_id 
+               : booking.booking_rooms[0].room?.hotel_id))
+          
+          const hotel = hotelMap.get(hotelId) || { 
+            id: hotelId || '', 
+            name: 'Unknown Hotel', 
+            location: 'Unknown', 
+            address: '' 
+          }
+
+          return {
+            ...booking,
+            hotel,
+            booking_rooms: (booking.booking_rooms || []).map((br: any) => {
+              const room = Array.isArray(br.room) ? br.room[0] : br.room
+              
+              if (!room) {
+                return {
+                  room: {
+                    room_number: 'N/A',
+                    room_type: { name: 'Unknown', capacity: 0 }
+                  }
+                }
+              }
+
+              const roomType = room.room_type
+              const roomTypeData = Array.isArray(roomType) ? roomType[0] : roomType
+
+              return {
+                room: {
+                  room_number: room.room_number || 'N/A',
+                  room_type: roomTypeData || { name: 'Unknown', capacity: 0 }
+                }
+              }
+            }),
+            booking_services: (booking.booking_services || []).map((bs: any) => {
+              const service = Array.isArray(bs.service) ? bs.service[0] : bs.service
+              return {
+                quantity: bs.quantity,
+                service: service || { name: 'Unknown', price: 0 }
+              }
+            })
+          }
+        })
+
+        setBookings(transformedBookings)
+      } else {
+        setBookings([])
+      }
 
       // Load payment history
       const { data: paymentsData, error: paymentsError } = await supabase
@@ -202,7 +273,9 @@ function GuestDashboardContent() {
           ...p,
           booking: {
             hotel: {
-              name: p.booking?.hotel?.name || 'Unknown Hotel'
+              name: Array.isArray(p.booking?.hotel) && p.booking.hotel.length > 0
+                ? p.booking.hotel[0].name
+                : 'Unknown Hotel'
             }
           }
         })))

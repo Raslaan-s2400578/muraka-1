@@ -12,7 +12,7 @@
 
 'use client'
 
-export const dynamic = 'force-dynamic'
+// Caching handled by React Query settings in providers.tsx
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
@@ -268,33 +268,44 @@ export default function Home() {
   ]
 
   useEffect(() => {
-    // Initialize Lenis smooth scroll
-    const lenis = new Lenis({
-      duration: 1.2,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      orientation: 'vertical',
-      smoothWheel: true,
-    })
+    // Defer Lenis initialization to after first paint for faster load
+    const initLenis = () => {
+      const lenis = new Lenis({
+        duration: 1.2,
+        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        orientation: 'vertical',
+        smoothWheel: true,
+      })
 
-    lenisRef.current = lenis
+      lenisRef.current = lenis
 
-    function raf(time: number) {
-      lenis.raf(time)
+      function raf(time: number) {
+        lenis.raf(time)
+        requestAnimationFrame(raf)
+      }
+
       requestAnimationFrame(raf)
+
+      // Handle scroll for navbar
+      lenis.on('scroll', ({ scroll }: { scroll: number }) => {
+        setNavbarTransparent(scroll < 100)
+      })
+
+      return lenis
     }
 
-    requestAnimationFrame(raf)
-
-    // Handle scroll for navbar
-    lenis.on('scroll', ({ scroll }: { scroll: number }) => {
-      setNavbarTransparent(scroll < 100)
-    })
-
-    // Loading animation
-    setTimeout(() => setLoading(false), 1500)
+    // Loading animation - reduced from 1500ms to 800ms
+    setTimeout(() => setLoading(false), 800)
+    
+    // Defer smooth scroll init until after load
+    let lenis: Lenis | null = null
+    const timer = setTimeout(() => {
+      lenis = initLenis()
+    }, 100)
 
     return () => {
-      lenis.destroy()
+      clearTimeout(timer)
+      lenis?.destroy()
     }
   }, [])
 
@@ -318,49 +329,53 @@ export default function Home() {
   }, [])
 
   useGSAP(() => {
-    // Animate sections on scroll
+    // Defer animations until after page is interactive
+    if (loading) return
+    
+    // Animate sections on scroll - simplified for better performance
     const sections = gsap.utils.toArray('.animate-section')
     sections.forEach((section: any) => {
       gsap.from(section, {
         opacity: 0,
-        y: 100,
-        duration: 1,
+        y: 50, // Reduced from 100 for smoother performance
+        duration: 0.6, // Reduced from 1
         scrollTrigger: {
           trigger: section,
-          start: 'top 80%',
+          start: 'top 85%',
           end: 'top 20%',
-          toggleActions: 'play none none reverse'
+          toggleActions: 'play none none none' // Don't reverse - saves CPU
         }
       })
     })
 
-    // Parallax heros
-    gsap.to('.hero-content', {
-      y: 100,
-      opacity: 0.8,
-      scrollTrigger: {
-        trigger: '.hero-section',
-        start: 'top top',
-        end: 'bottom top',
-        scrub: true
-      }
-    })
+    // Parallax hero - only on desktop for performance
+    if (window.innerWidth > 768) {
+      gsap.to('.hero-content', {
+        y: 50, // Reduced from 100
+        opacity: 0.9,
+        scrollTrigger: {
+          trigger: '.hero-section',
+          start: 'top top',
+          end: 'bottom top',
+          scrub: 1 // Add number for smoother scrub
+        }
+      })
+    }
 
-    // Animate amenity icons
+    // Animate amenity icons - simplified
     const amenityIcons = gsap.utils.toArray('.amenity-icon')
     amenityIcons.forEach((icon: any, index: number) => {
       gsap.from(icon, {
-        scale: 0,
-        rotation: 360,
-        duration: 0.8,
-        delay: index * 0.1,
+        scale: 0.8, // Reduced from 0
+        duration: 0.4, // Reduced from 0.8
+        delay: index * 0.05, // Reduced delay
         scrollTrigger: {
           trigger: icon,
-          start: 'top 90%'
+          start: 'top 95%'
         }
       })
     })
-  }, [])
+  }, [loading]) // Depend on loading state
 
   const checkUser = async () => {
     const { data: { user } } = await supabase.auth.getUser()

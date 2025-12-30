@@ -139,17 +139,32 @@ export default function ManagerDashboard() {
       // Load room types for rate management
       const { data: roomTypesData, error: roomTypesError } = await supabase
         .from('room_types')
-        .select(`
-          *,
-          hotel:hotels(name, location)
-        `)
+        .select('*')
         .order('name', { ascending: true })
 
       if (roomTypesError) {
         throw roomTypesError
       }
 
-      setRoomTypes(roomTypesData || [])
+      // Fetch hotel data separately
+      if (roomTypesData && roomTypesData.length > 0) {
+        const hotelIds = [...new Set(roomTypesData.map(rt => rt.hotel_id).filter(Boolean))]
+        const { data: hotels } = await supabase
+          .from('hotels')
+          .select('id, name, location')
+          .in('id', hotelIds)
+
+        const hotelMap = new Map(hotels?.map(h => [h.id, h]) || [])
+
+        const transformedRoomTypes = roomTypesData.map(rt => ({
+          ...rt,
+          hotel: hotelMap.get(rt.hotel_id) || { name: 'Unknown', location: 'Unknown' }
+        }))
+
+        setRoomTypes(transformedRoomTypes)
+      } else {
+        setRoomTypes([])
+      }
 
       // Load recent bookings
       const { data: bookingsData, error: bookingsError } = await supabase
@@ -159,10 +174,10 @@ export default function ManagerDashboard() {
           check_in,
           check_out,
           status,
-          guest:profiles!bookings_guest_id_fkey(full_name),
-          hotel:hotels(name),
+          guest_id,
+          hotel_id,
           booking_rooms(
-            room:rooms(room_number)
+            room:rooms!inner(room_number, hotel_id)
           )
         `)
         .order('created_at', { ascending: false })
@@ -170,25 +185,51 @@ export default function ManagerDashboard() {
 
       if (bookingsError) {
         console.error('Bookings error:', bookingsError)
-      } else {
-        // Transform booking data to match interface
-        const transformedBookings = (bookingsData || []).map(booking => ({
-          id: booking.id,
-          check_in: booking.check_in,
-          check_out: booking.check_out,
-          status: booking.status,
-          guest: Array.isArray(booking.guest) && booking.guest.length > 0
-            ? { full_name: booking.guest[0].full_name }
-            : { full_name: 'Unknown Guest' },
-          hotel: Array.isArray(booking.hotel) && booking.hotel.length > 0
-            ? { name: booking.hotel[0].name }
-            : { name: 'Unknown Hotel' },
-          booking_rooms: booking.booking_rooms.map(br => ({
-            room: Array.isArray(br.room) && br.room.length > 0
-              ? { room_number: br.room[0].room_number }
-              : { room_number: 'N/A' }
-          }))
-        }))
+      } else if (bookingsData && bookingsData.length > 0) {
+        // Fetch guest and hotel data separately
+        const guestIds = [...new Set(bookingsData.map(b => b.guest_id))]
+        const hotelIdsFromBookings = bookingsData.map(b => b.hotel_id).filter(Boolean)
+        const hotelIdsFromRooms = bookingsData.flatMap(b => 
+          b.booking_rooms?.map((br: any) => {
+            const room = Array.isArray(br.room) ? br.room[0] : br.room
+            return room?.hotel_id
+          }).filter(Boolean) || []
+        )
+        const hotelIds = [...new Set([...hotelIdsFromBookings, ...hotelIdsFromRooms])]
+
+        const [{ data: guests }, { data: hotels }] = await Promise.all([
+          supabase.from('profiles').select('id, full_name').in('id', guestIds),
+          supabase.from('hotels').select('id, name').in('id', hotelIds)
+        ])
+
+        const guestMap = new Map(guests?.map(g => [g.id, g]) || [])
+        const hotelMap = new Map(hotels?.map(h => [h.id, h]) || [])
+
+        // Transform booking data with fetched guest and hotel info
+        const transformedBookings = bookingsData.map((booking: any) => {
+          const hotelId = booking.hotel_id || 
+            (booking.booking_rooms?.[0] && 
+             (Array.isArray(booking.booking_rooms[0].room) 
+               ? booking.booking_rooms[0].room[0]?.hotel_id 
+               : booking.booking_rooms[0].room?.hotel_id))
+
+          return {
+            id: booking.id,
+            check_in: booking.check_in,
+            check_out: booking.check_out,
+            status: booking.status,
+            guest: guestMap.get(booking.guest_id) || { full_name: 'Unknown Guest' },
+            hotel: hotelMap.get(hotelId) || { name: 'Unknown Hotel' },
+            booking_rooms: (booking.booking_rooms || []).map((br: any) => {
+              const room = Array.isArray(br.room) ? br.room[0] : br.room
+              return {
+                room: {
+                  room_number: room?.room_number || 'N/A'
+                }
+              }
+            })
+          }
+        })
         setRecentBookings(transformedBookings)
       }
 

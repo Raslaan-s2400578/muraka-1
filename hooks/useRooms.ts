@@ -61,6 +61,11 @@ export function useRooms(options: UseRoomsOptions = {}) {
         query = query.eq('status', status)
       }
 
+      // Server-side search filter - much faster than client-side
+      if (searchTerm) {
+        query = query.or(`room_number.ilike.%${searchTerm}%`)
+      }
+
       query = query
         .range(start, end)
         .order('room_number')
@@ -82,25 +87,15 @@ export function useRooms(options: UseRoomsOptions = {}) {
           : { id: '', name: 'Unknown', location: 'Unknown' }
       }))
 
-      // Apply search filter client-side
-      let filteredRooms = transformedData
-      if (searchTerm) {
-        const term = searchTerm.toLowerCase()
-        filteredRooms = transformedData.filter(room =>
-          room.room_number.toLowerCase().includes(term) ||
-          room.room_type.name.toLowerCase().includes(term) ||
-          room.hotel.name.toLowerCase().includes(term)
-        )
-      }
-
       return {
-        rooms: filteredRooms as Room[],
+        rooms: transformedData as Room[],
         total: count || 0,
         page,
         pageSize
       }
     },
-    staleTime: 3 * 60 * 1000, // 3 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 15 * 60 * 1000, // 15 minutes cache
   })
 }
 

@@ -18,17 +18,20 @@ import "./globals.css";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: "swap", // Show fallback font immediately while loading
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
   subsets: ["latin"],
-  weight: ["400", "700", "900"],
+  weight: ["400", "700"], // Reduced from 3 weights to 2 - saves ~50KB
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -44,8 +47,16 @@ export default function RootLayout({
   return (
     <html lang="en" className="lenis" data-scroll-behavior="smooth">
       <head>
-        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8196212883156501"
-          crossOrigin="anonymous"></script>
+        {/* Defer AdSense to not block initial render */}
+        <script 
+          async 
+          defer
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8196212883156501"
+          crossOrigin="anonymous"
+        />
+        {/* Preconnect to external domains for faster loading */}
+        <link rel="preconnect" href="https://images.unsplash.com" />
+        <link rel="dns-prefetch" href="https://images.unsplash.com" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} antialiased font-sans`}
